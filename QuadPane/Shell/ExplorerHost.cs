@@ -44,10 +44,9 @@ public sealed class ExplorerHost : NativeControlHost
         {
             if (_showTree == value) return;
             _showTree = value;
-            if (_browser == null) return;
-            _browser.SetOptions(CurrentOptions());
-            // Thay đổi navigation pane chỉ có hiệu lực sau khi điều hướng lại
-            if (_currentPidl != IntPtr.Zero) _browser.BrowseToIDList(_currentPidl, SBSP_ABSOLUTE);
+            // EBO_SHOWFRAMES quyết định cấu trúc khung lúc khởi tạo Browser.
+            // Điều hướng lại một Browser cũ không tạo ra navigation pane.
+            if (_browser != null) RecreateBrowser();
         }
     }
 
@@ -72,16 +71,7 @@ public sealed class ExplorerHost : NativeControlHost
         if (_hostHwnd == IntPtr.Zero) return base.CreateNativeControlCore(parent);
         s_hosts[_hostHwnd] = this;
 
-        var type = Type.GetTypeFromCLSID(CLSID_ExplorerBrowser, throwOnError: true)!;
-        _browser = (IExplorerBrowser)Activator.CreateInstance(type)!;
-        _browser.SetOptions(CurrentOptions());
-        var rc = new RECT(0, 0, 1, 1);
-        var fs = new FOLDERSETTINGS { ViewMode = FVM_DETAILS, fFlags = 0 };
-        Marshal.ThrowExceptionForHR(_browser.Initialize(_hostHwnd, ref rc, ref fs));
-        _browser.SetPropertyBag(PropertyBagName);
-
-        _sink = new EventSink(this);
-        _browser.Advise(_sink, out _cookie);
+        CreateBrowser();
 
         // Không điều hướng ngay trong lúc framework đang dựng cây giao diện:
         // shell sẽ bơm message lồng nhau. Dời sang lượt dispatcher sau.
@@ -96,17 +86,53 @@ public sealed class ExplorerHost : NativeControlHost
 
     protected override void DestroyNativeControlCore(IPlatformHandle control)
     {
-        if (_browser != null)
-        {
-            if (_cookie != 0) _browser.Unadvise(_cookie);
-            _browser.Destroy();
-            Marshal.ReleaseComObject(_browser);
-            _browser = null;
-        }
+        DestroyBrowser();
         if (_currentPidl != IntPtr.Zero) { ILFree(_currentPidl); _currentPidl = IntPtr.Zero; }
         s_hosts.Remove(control.Handle);
         DestroyWindow(control.Handle);
         _hostHwnd = IntPtr.Zero;
+    }
+
+    private void CreateBrowser()
+    {
+        var type = Type.GetTypeFromCLSID(CLSID_ExplorerBrowser, throwOnError: true)!;
+        _browser = (IExplorerBrowser)Activator.CreateInstance(type)!;
+        Marshal.ThrowExceptionForHR(_browser.SetOptions(CurrentOptions()));
+        if (!GetClientRect(_hostHwnd, out var rc)) rc = new RECT(0, 0, 1, 1);
+        var fs = new FOLDERSETTINGS { ViewMode = FVM_DETAILS, fFlags = 0 };
+        Marshal.ThrowExceptionForHR(_browser.Initialize(_hostHwnd, ref rc, ref fs));
+        Marshal.ThrowExceptionForHR(_browser.SetPropertyBag(PropertyBagName));
+        _sink = new EventSink(this);
+        Marshal.ThrowExceptionForHR(_browser.Advise(_sink, out _cookie));
+    }
+
+    private void DestroyBrowser()
+    {
+        if (_browser == null) return;
+        if (_cookie != 0) _browser.Unadvise(_cookie);
+        _cookie = 0;
+        _sink = null;
+        _browser.Destroy();
+        Marshal.ReleaseComObject(_browser);
+        _browser = null;
+    }
+
+    private void RecreateBrowser()
+    {
+        // BrowseToIDList có thể phát OnNavigationComplete đồng bộ; giữ PIDL riêng
+        // để callback không giải phóng PIDL đang được lệnh Browse sử dụng.
+        IntPtr restorePidl = _currentPidl != IntPtr.Zero ? ILClone(_currentPidl) : IntPtr.Zero;
+        try
+        {
+            DestroyBrowser();
+            CreateBrowser();
+            if (restorePidl != IntPtr.Zero)
+                Marshal.ThrowExceptionForHR(_browser!.BrowseToIDList(restorePidl, SBSP_ABSOLUTE));
+        }
+        finally
+        {
+            if (restorePidl != IntPtr.Zero) ILFree(restorePidl);
+        }
     }
 
     private static void EnsureClassRegistered()

@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly LayoutData _layout;
     private PaneView _active;
     private LayoutMode _mode;
+    private SearchWindow? _searchWindow;
 
     // Hook message của thread UI: phím/chuột trong cửa sổ Win32 của Explorer
     // không đi qua hệ thống input của Avalonia, nên phải bắt ở mức Win32.
@@ -27,7 +28,7 @@ public partial class MainWindow : Window
     // Vị trí ô lưới của từng panel: 0 trên-trái, 1 trên-phải, 2 dưới-trái, 3 dưới-phải
     private static readonly (int Row, int Col)[] Cells = [(0, 0), (0, 2), (2, 0), (2, 2)];
 
-    private enum Shortcut { None, Pane1, Pane2, Pane3, Pane4, Address, Back, Forward, Up, Refresh }
+    private enum Shortcut { None, Pane1, Pane2, Pane3, Pane4, Address, Search, Back, Forward, Up, Refresh, NewTab, CloseTab, NextTab, PreviousTab }
 
     // Constructor không tham số cho designer
     public MainWindow() : this(new LayoutData()) { }
@@ -40,7 +41,10 @@ public partial class MainWindow : Window
 
         for (int i = 0; i < 4; i++)
         {
-            var pane = new PaneView(i, _layout.Paths[i], _layout.ShowTree[i]);
+            var paths = _layout.TabPaths[i] is { Length: > 0 } saved ? saved : [_layout.Paths[i]];
+            var ids = _layout.TabIds[i] is { Length: > 0 } savedIds && savedIds.Length == paths.Length
+                ? savedIds : Enumerable.Range(0, paths.Length).Select(j => j == 0 ? $"QuadPane.Pane{i}" : $"QuadPane.Pane{i}.Tab{Guid.NewGuid():N}").ToArray();
+            var pane = new PaneView(i, paths, ids, _layout.ActiveTabs[i], _layout.ShowTree[i], LayoutStore.DefaultPath(i));
             Grid.SetRow(pane, Cells[i].Row);
             Grid.SetColumn(pane, Cells[i].Col);
             pane.Activated += SetActive;
@@ -91,6 +95,20 @@ public partial class MainWindow : Window
         ActiveBadge.Text = $"PANEL {_active.Index + 1}";
         StatusText.Text = _active.DisplayPath;
         Title = $"{_active.DisplayPath} — QuadPane";
+    }
+
+    private void Search_Click(object? sender, RoutedEventArgs e) => OpenSearch();
+
+    private void OpenSearch()
+    {
+        if (_searchWindow is { IsVisible: true })
+        {
+            _searchWindow.FocusSearch();
+            return;
+        }
+        _searchWindow = new SearchWindow(path => _active.Navigate(path));
+        _searchWindow.Closed += (_, _) => _searchWindow = null;
+        _searchWindow.Show(this);
     }
 
     // ---- Bố cục ----
@@ -319,9 +337,13 @@ public partial class MainWindow : Window
 
     private static Shortcut MapVirtualKey(int vk, bool ctrl, bool alt, bool shift)
     {
+        if (ctrl && !alt && vk == 0x09) return shift ? Shortcut.PreviousTab : Shortcut.NextTab;
         if (shift) return Shortcut.None;
+        if (ctrl && !alt && vk == 0x54) return Shortcut.NewTab;
+        if (ctrl && !alt && vk == 0x57) return Shortcut.CloseTab;
         if (ctrl && !alt && vk is >= 0x31 and <= 0x34) return Shortcut.Pane1 + (vk - 0x31);
         if ((ctrl && !alt && vk == 0x4C) || (alt && !ctrl && vk == 0x44)) return Shortcut.Address; // Ctrl+L, Alt+D
+        if (ctrl && !alt && vk == 0x46) return Shortcut.Search; // Ctrl+F
         if (alt && !ctrl)
             return vk switch { 0x25 => Shortcut.Back, 0x27 => Shortcut.Forward, 0x26 => Shortcut.Up, _ => Shortcut.None };
         if (!ctrl && !alt && vk == 0x74) return Shortcut.Refresh; // F5
@@ -330,9 +352,13 @@ public partial class MainWindow : Window
 
     private static Shortcut MapAvaloniaKey(Key key, bool ctrl, bool alt, bool shift)
     {
+        if (ctrl && !alt && key == Key.Tab) return shift ? Shortcut.PreviousTab : Shortcut.NextTab;
         if (shift) return Shortcut.None;
+        if (ctrl && !alt && key == Key.T) return Shortcut.NewTab;
+        if (ctrl && !alt && key == Key.W) return Shortcut.CloseTab;
         if (ctrl && !alt && key is >= Key.D1 and <= Key.D4) return Shortcut.Pane1 + (key - Key.D1);
         if ((ctrl && !alt && key == Key.L) || (alt && !ctrl && key == Key.D)) return Shortcut.Address;
+        if (ctrl && !alt && key == Key.F) return Shortcut.Search;
         if (alt && !ctrl)
             return key switch { Key.Left => Shortcut.Back, Key.Right => Shortcut.Forward, Key.Up => Shortcut.Up, _ => Shortcut.None };
         if (!ctrl && !alt && key == Key.F5) return Shortcut.Refresh;
@@ -355,10 +381,15 @@ public partial class MainWindow : Window
                 pane.FocusView();
                 break;
             case Shortcut.Address: _active.FocusAddress(); break;
+            case Shortcut.Search: OpenSearch(); break;
             case Shortcut.Back: _active.GoBack(); break;
             case Shortcut.Forward: _active.GoForward(); break;
             case Shortcut.Up: _active.GoUp(); break;
             case Shortcut.Refresh: _active.RefreshView(); break;
+            case Shortcut.NewTab: _active.OpenTab(); break;
+            case Shortcut.CloseTab: _active.CloseCurrentTab(); break;
+            case Shortcut.NextTab: _active.SelectNextTab(1); break;
+            case Shortcut.PreviousTab: _active.SelectNextTab(-1); break;
         }
     }
 
@@ -387,6 +418,9 @@ public partial class MainWindow : Window
         for (int i = 0; i < 4; i++)
         {
             _layout.Paths[i] = _panes[i].CurrentPath ?? _layout.Paths[i];
+            _layout.TabPaths[i] = _panes[i].TabPaths;
+            _layout.TabIds[i] = _panes[i].TabIds;
+            _layout.ActiveTabs[i] = _panes[i].ActiveTabIndex;
             _layout.ShowTree[i] = _panes[i].ShowTree;
         }
 

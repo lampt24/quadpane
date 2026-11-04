@@ -22,9 +22,6 @@ internal static class Program
             {
                 RenderingMode = [Win32RenderingMode.AngleEgl, Win32RenderingMode.Software],
             })
-#if DEBUG
-            .WithDeveloperTools()
-#endif
             .WithInterFont()
             .LogToTrace();
 }

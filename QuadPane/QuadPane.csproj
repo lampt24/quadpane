@@ -7,6 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>QuadPane</RootNamespace>
     <AssemblyName>QuadPane</AssemblyName>
+    <!-- Tránh file trung gian cũ bị khóa bởi phần mềm bảo vệ khi build lại. -->
+    <IntermediateOutputPath>obj\$(Configuration)\$(TargetFramework)\generated\</IntermediateOutputPath>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\QuadPane.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -15,6 +17,8 @@
   <ItemGroup>
     <!-- Icon/logo nhúng vào app (avares://QuadPane/Assets/...) -->
     <AvaloniaResource Include="Assets\QuadPane.ico" />
+    <Content Include="Assets\EverythingSdk\*.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\EverythingSdk\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <!-- tools/ chứa script độc lập (dotnet run tools/make-icon.cs), không thuộc app -->
     <Compile Remove="tools\**" />
     <None Remove="tools\**" />

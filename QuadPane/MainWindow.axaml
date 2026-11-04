@@ -64,6 +64,7 @@
                         </ToggleButton>
                     </StackPanel>
                 </Border>
+                <Button Classes="icon" Content="&#xE721;" ToolTip.Tip="Tìm kiếm với Everything (Ctrl+F)" Click="Search_Click"/>
                 <Button Classes="icon" Content="&#xE9A6;" ToolTip.Tip="Chia đều các panel" Click="Equalize_Click"/>
                 <Button x:Name="ThemeButton" Classes="icon" Click="Theme_Click"/>
             </StackPanel>
@@ -90,7 +91,7 @@
             </StackPanel>
             <TextBlock Grid.Column="1" FontSize="11.5" VerticalAlignment="Center"
                        Foreground="{DynamicResource MutedTextBrush}"
-                       Text="Ctrl+1..4 chọn panel  ·  Ctrl+L ô địa chỉ  ·  Alt+←/→/↑ điều hướng  ·  F5 làm mới"/>
+                       Text="Ctrl+1..4 chọn panel  ·  Ctrl+F tìm kiếm  ·  Ctrl+L ô địa chỉ  ·  Alt+←/→/↑ điều hướng  ·  F5 làm mới"/>
         </Grid>
     </Grid>
 </Window>

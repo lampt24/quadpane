@@ -175,6 +175,10 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool IsChild(IntPtr parent, IntPtr child);
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
+
     [DllImport("user32.dll", SetLastError = true)]
     public static extern IntPtr SetWindowsHookEx(int idHook, HookProcDelegate fn, IntPtr hMod, uint threadId);
 

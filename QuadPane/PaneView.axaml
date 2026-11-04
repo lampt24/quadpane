@@ -1,15 +1,24 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:shell="using:QuadPane.Shell"
              x:Class="QuadPane.PaneView">
 
     <Border x:Name="Card" Classes="pane">
         <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{DynamicResource TabBarBrush}"
+                    CornerRadius="8.5,8.5,0,0" ClipToBounds="True">
+                <DockPanel LastChildFill="True">
+                    <Button DockPanel.Dock="Right" Classes="tabAdd" Content="+" Margin="0,4,6,0"
+                            ToolTip.Tip="Tab mới (Ctrl+T)" Click="AddTab_Click"/>
+                    <ScrollViewer Margin="6,4,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="TabStrip" Orientation="Horizontal" Spacing="3"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
             <!-- Thanh điều hướng của panel -->
-            <!-- Bo 2 góc trên theo thẻ (bán kính trong = 10 - độ dày viền) để nền header không lấn ra góc -->
+            <!-- Thanh điều hướng nối liền với tab đang chọn -->
             <Border DockPanel.Dock="Top" Background="{DynamicResource PaneHeaderBrush}"
                     BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="0,0,0,1"
-                    CornerRadius="8.5,8.5,0,0" Padding="6,5">
+                    Padding="6,5">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" Margin="0,0,6,0">
                         <Button Classes="icon" Content="&#xE72B;" ToolTip.Tip="Quay lại (Alt+←)" Click="Back_Click"/>
@@ -27,7 +36,7 @@
             </Border>
 
             <!-- Explorer nhúng: chừa mép dưới để thấy góc bo của thẻ -->
-            <shell:ExplorerHost x:Name="Host" Margin="1,0,1,6"/>
+            <Grid x:Name="HostLayer" Margin="1,0,1,6"/>
         </DockPanel>
     </Border>
 </UserControl>
