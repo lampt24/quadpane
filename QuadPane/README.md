@@ -14,7 +14,7 @@ Cần Windows 10/11, vì mỗi panel nhúng Explorer Browser của Windows.
 
 ## Tạo GitHub Release
 
-Workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) chạy mỗi khi có push lên `main`, gồm cả commit được merge vào nhánh này. Sau khi build thành công, workflow tự tạo tag và GitHub Release dạng `v0.0.N`, với `N` là số lần chạy workflow. Tag trỏ tới commit vừa được build; chạy lại cùng một workflow sẽ cập nhật các gói của release đó.
+Workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml) chạy mỗi khi có push lên `main`, gồm cả commit được merge vào nhánh này. Sau khi build thành công, workflow tự tạo tag và GitHub Release dạng `v0.0.N`, với `N` là số lần chạy workflow. Tag trỏ tới commit vừa được build; chạy lại cùng một workflow sẽ cập nhật các gói của release đó.
 
 Mỗi release có gói ZIP tự chứa .NET cho Windows x64, ARM64 và x86, cùng file `SHA256SUMS.txt`. Tải đúng gói theo kiến trúc máy, giải nén rồi chạy `QuadPane.exe`; không cần cài .NET Runtime.
 

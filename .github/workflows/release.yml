@@ -12,6 +12,9 @@ jobs:
   build:
     name: Build ${{ matrix.rid }}
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: QuadPane
     env:
       RELEASE_TAG: v0.0.${{ github.run_number }}
     strategy:
@@ -47,7 +50,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: QuadPane-${{ matrix.rid }}
-          path: dist/*.zip
+          path: QuadPane/dist/*.zip
           if-no-files-found: error
 
   release:
