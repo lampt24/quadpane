@@ -5,44 +5,23 @@
         Icon="/Assets/QuadPane.ico"
         Width="1280" Height="800" MinWidth="640" MinHeight="420"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="48"
+        ExtendClientAreaTitleBarHeightHint="40"
         TransparencyLevelHint="Mica, AcrylicBlur, None"
         TransparencyBackgroundFallback="{DynamicResource WindowFallbackBrush}"
         Background="Transparent">
 
-    <Grid RowDefinitions="48,*,30">
+    <Grid RowDefinitions="40,*,30">
 
         <!-- ===== Thanh tiêu đề tự vẽ (nút đóng/thu nhỏ của hệ thống ở góc phải) ===== -->
-        <Grid x:Name="TitleBar" Grid.Row="0" Background="Transparent"
+        <Grid x:Name="TitleBar" Grid.Row="0" Background="{DynamicResource TitleSurfaceBrush}"
               ColumnDefinitions="Auto,*,Auto,150">
-            <StackPanel Orientation="Horizontal" Spacing="10" Margin="16,0,0,0" VerticalAlignment="Center"
+            <Border Grid.ColumnSpan="4" BorderBrush="{DynamicResource TitleBorderBrush}"
+                    BorderThickness="0,0,0,1" IsHitTestVisible="False"/>
+            <StackPanel Orientation="Horizontal" Spacing="10" Margin="16,0,16,0" VerticalAlignment="Center"
                         IsHitTestVisible="False">
-                <!-- Logo (vector, cùng thiết kế với Assets/logo.svg, hệ toạ độ 256) -->
-                <Viewbox Width="24" Height="24">
-                    <Canvas Width="256" Height="256">
-                        <Border Width="256" Height="256" CornerRadius="56">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                                    <GradientStop Offset="0" Color="#3B9BFF"/>
-                                    <GradientStop Offset="1" Color="#5B4BE8"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                        </Border>
-                        <Border Width="256" Height="256" CornerRadius="56">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
-                                    <GradientStop Offset="0" Color="#2EFFFFFF"/>
-                                    <GradientStop Offset="0.55" Color="#00FFFFFF"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                        </Border>
-                        <Border Canvas.Left="52" Canvas.Top="52" Width="68" Height="68" CornerRadius="14" Background="White"/>
-                        <Border Canvas.Left="136" Canvas.Top="52" Width="68" Height="68" CornerRadius="14" Background="#73FFFFFF"/>
-                        <Border Canvas.Left="52" Canvas.Top="136" Width="68" Height="68" CornerRadius="14" Background="#73FFFFFF"/>
-                        <Border Canvas.Left="136" Canvas.Top="136" Width="68" Height="68" CornerRadius="14" Background="#73FFFFFF"/>
-                    </Canvas>
-                </Viewbox>
-                <TextBlock Text="QuadPane" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                <Image Source="/Assets/logo-256.png" Width="20" Height="20"/>
+                <TextBlock Text="QuadPane" FontWeight="Normal" FontSize="14" LetterSpacing="0"
+                           Foreground="{DynamicResource TitleTextBrush}" VerticalAlignment="Center"/>
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -80,18 +59,21 @@
         </Grid>
 
         <!-- ===== Thanh trạng thái ===== -->
-        <Grid Grid.Row="2" Margin="18,0" ColumnDefinitions="*,Auto">
-            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="4" Padding="6,1">
-                    <TextBlock x:Name="ActiveBadge" FontSize="11" FontWeight="SemiBold"
+        <Border Grid.Row="2" Background="{DynamicResource StatusSurfaceBrush}"
+                BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,1,0,0">
+            <Grid Margin="16,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="4" Padding="7,2"
+                        VerticalAlignment="Center">
+                    <TextBlock x:Name="ActiveBadge" FontSize="10.5" FontWeight="SemiBold"
                                Foreground="{DynamicResource AccentBrush}"/>
                 </Border>
-                <TextBlock x:Name="StatusText" FontSize="12" VerticalAlignment="Center"
+                <TextBlock x:Name="StatusText" Grid.Column="1" FontSize="11.5" FontWeight="Medium"
+                           Foreground="{DynamicResource StatusTextBrush}" VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis"/>
-            </StackPanel>
-            <TextBlock Grid.Column="1" FontSize="11.5" VerticalAlignment="Center"
-                       Foreground="{DynamicResource MutedTextBrush}"
-                       Text="Ctrl+1..4 chọn panel  ·  Ctrl+F tìm kiếm  ·  Ctrl+L ô địa chỉ  ·  Alt+←/→/↑ điều hướng  ·  F5 làm mới"/>
-        </Grid>
+                <TextBlock Grid.Column="2" FontSize="11" VerticalAlignment="Center"
+                           Foreground="{DynamicResource StatusMutedTextBrush}"
+                           Text="Ctrl+F  Tìm kiếm    ·    Ctrl+L  Địa chỉ"/>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

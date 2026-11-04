@@ -1,19 +1,18 @@
-<!-- QuadPane logo: 4 panel trong một khối bo góc; ô trên-trái sáng = panel đang hoạt động -->
+<!-- QuadPane: a four-pane window whose active pane and diagonal tail form a Q. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3B9BFF"/>
-      <stop offset="1" stop-color="#5B4BE8"/>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#173E62"/>
+      <stop offset="1" stop-color="#0A2039"/>
     </linearGradient>
-    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
-      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    <linearGradient id="active" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#74E5FF"/>
+      <stop offset="1" stop-color="#28B9ED"/>
     </linearGradient>
   </defs>
-  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
-  <rect width="256" height="256" rx="56" fill="url(#shine)"/>
-  <rect x="52"  y="52"  width="68" height="68" rx="14" fill="#FFFFFF"/>
-  <rect x="136" y="52"  width="68" height="68" rx="14" fill="#FFFFFF" fill-opacity="0.45"/>
-  <rect x="52"  y="136" width="68" height="68" rx="14" fill="#FFFFFF" fill-opacity="0.45"/>
-  <rect x="136" y="136" width="68" height="68" rx="14" fill="#FFFFFF" fill-opacity="0.45"/>
+  <rect width="256" height="256" rx="54" fill="url(#background)"/>
+  <rect x="37" y="37" width="182" height="182" rx="38" fill="none" stroke="#D8F2FF" stroke-width="13"/>
+  <path d="M128 44v168M44 128h168" stroke="#D8F2FF" stroke-width="12"/>
+  <rect x="52" y="52" width="68" height="68" rx="10" fill="url(#active)"/>
+  <path d="M173 173l53 53" stroke="#41D1F5" stroke-width="22" stroke-linecap="round"/>
 </svg>

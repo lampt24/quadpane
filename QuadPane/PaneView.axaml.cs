@@ -84,6 +84,7 @@ public partial class PaneView : UserControl
             MaxWidth = 130,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
         };
+        label.Classes.Add("tabTitle");
         var selectButton = new Button { Content = label };
         selectButton.Classes.Add("tabSelect");
         var closeButton = new Button { Content = "×" };

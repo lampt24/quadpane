@@ -11,6 +11,14 @@
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="WindowFallbackBrush" Color="#F3F3F3"/>
                     <SolidColorBrush x:Key="ChromeBrush" Color="#B3F3F3F3"/>
+                    <SolidColorBrush x:Key="TitleSurfaceBrush" Color="#F3F3F3"/>
+                    <SolidColorBrush x:Key="TitleBorderBrush" Color="#D8D8D8"/>
+                    <SolidColorBrush x:Key="TitleTextBrush" Color="#292929"/>
+                    <SolidColorBrush x:Key="TabTextBrush" Color="#616161"/>
+                    <SolidColorBrush x:Key="TabSelectedTextBrush" Color="#292929"/>
+                    <SolidColorBrush x:Key="StatusSurfaceBrush" Color="#F3F3F3"/>
+                    <SolidColorBrush x:Key="StatusTextBrush" Color="#404040"/>
+                    <SolidColorBrush x:Key="StatusMutedTextBrush" Color="#626262"/>
                     <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#FFFFFF"/>
                     <SolidColorBrush x:Key="PaneHeaderBrush" Color="#F9F9F9"/>
                     <SolidColorBrush x:Key="PaneBorderBrush" Color="#E5E5E5"/>
@@ -21,11 +29,19 @@
                     <SolidColorBrush x:Key="SplitterHoverBrush" Color="#590067C0"/>
                     <SolidColorBrush x:Key="AddressBackgroundBrush" Color="#FFFFFF"/>
                     <SolidColorBrush x:Key="TabHoverBrush" Color="#0A000000"/>
-                    <SolidColorBrush x:Key="TabBarBrush" Color="#ECECEC"/>
+                    <SolidColorBrush x:Key="TabBarBrush" Color="#EAEAEA"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="WindowFallbackBrush" Color="#191919"/>
                     <SolidColorBrush x:Key="ChromeBrush" Color="#99191919"/>
+                    <SolidColorBrush x:Key="TitleSurfaceBrush" Color="#181818"/>
+                    <SolidColorBrush x:Key="TitleBorderBrush" Color="#383838"/>
+                    <SolidColorBrush x:Key="TitleTextBrush" Color="#DCDCDC"/>
+                    <SolidColorBrush x:Key="TabTextBrush" Color="#A8A8A8"/>
+                    <SolidColorBrush x:Key="TabSelectedTextBrush" Color="#E6E6E6"/>
+                    <SolidColorBrush x:Key="StatusSurfaceBrush" Color="#1E1E1E"/>
+                    <SolidColorBrush x:Key="StatusTextBrush" Color="#D4D4D4"/>
+                    <SolidColorBrush x:Key="StatusMutedTextBrush" Color="#A8A8A8"/>
                     <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#202020"/>
                     <SolidColorBrush x:Key="PaneHeaderBrush" Color="#272727"/>
                     <SolidColorBrush x:Key="PaneBorderBrush" Color="#333333"/>
@@ -36,7 +52,7 @@
                     <SolidColorBrush x:Key="SplitterHoverBrush" Color="#594CC2FF"/>
                     <SolidColorBrush x:Key="AddressBackgroundBrush" Color="#1C1C1C"/>
                     <SolidColorBrush x:Key="TabHoverBrush" Color="#18FFFFFF"/>
-                    <SolidColorBrush x:Key="TabBarBrush" Color="#303030"/>
+                    <SolidColorBrush x:Key="TabBarBrush" Color="#252526"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
@@ -86,8 +102,8 @@
         <Style Selector="Border.pane">
             <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1.5"/>
-            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="Transitions">
                 <Transitions>
@@ -101,7 +117,7 @@
 
         <Style Selector="Border.tabItem">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="CornerRadius" Value="8,8,0,0"/>
+            <Setter Property="CornerRadius" Value="4,4,0,0"/>
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
         <Style Selector="Border.tabItem.selected">
@@ -112,6 +128,14 @@
         </Style>
         <Style Selector="Border.tabItem.selected:pointerover">
             <Setter Property="Background" Value="{DynamicResource PaneHeaderBrush}"/>
+        </Style>
+        <Style Selector="TextBlock.tabTitle">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="{DynamicResource TabTextBrush}"/>
+        </Style>
+        <Style Selector="Border.tabItem.selected TextBlock.tabTitle">
+            <Setter Property="Foreground" Value="{DynamicResource TabSelectedTextBrush}"/>
         </Style>
         <Style Selector="Button.tabSelect, Button.tabClose, Button.tabAdd">
             <Setter Property="Background" Value="Transparent"/>

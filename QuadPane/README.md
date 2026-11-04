@@ -22,7 +22,7 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 
 ## Giao diện
 
-- Thanh tiêu đề tự vẽ (`ExtendClientAreaToDecorationsHint`) chứa logo, đường dẫn đang mở, nút chọn bố cục 4/3/2/1 khung, nút chia đều và nút đổi theme.
+- Thanh tiêu đề tự vẽ (`ExtendClientAreaToDecorationsHint`) chứa logo, tên app, nút chọn bố cục 4/3/2/1 khung, nút chia đều và nút đổi theme.
 - Nền Mica trên Windows 11; các máy không hỗ trợ dùng màu nền thay thế.
 - Mỗi panel là một thẻ bo góc; panel đang hoạt động có viền màu nhấn (accent).
 - Mỗi panel có dải tab riêng. Tab mới mở tại `C:\`. Mỗi tab giữ Explorer Browser và lịch sử điều hướng riêng trong phiên chạy; các thư mục và tab đang chọn được khôi phục ở lần mở sau.
@@ -30,11 +30,11 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 
 ## Logo & icon
 
-- `Assets/logo.svg`: bản thiết kế gốc. Nền bo góc gradient xanh → tím, bên trong là lưới 2×2 panel; ô trên-trái sáng đặc tượng trưng cho panel đang hoạt động.
-- `Assets/QuadPane.ico`: icon cho exe, cửa sổ và taskbar, gồm các cỡ 16–256 px. Mỗi cỡ được dựng lại theo lưới pixel để không bị nhòe.
+- `Assets/logo.svg`: bản thiết kế gốc. Bốn ô panel tạo thành chữ Q, với ô đang chọn và nét đuôi màu xanh cyan.
+- `Assets/QuadPane.ico`: icon cho exe, cửa sổ và taskbar, gồm các cỡ 16–256 px.
 - `Assets/logo-256.png`: bản PNG của logo.
-- Logo trên header được vẽ bằng vector trong `MainWindow.axaml`.
-- Sau khi sửa thiết kế, tạo lại icon bằng lệnh `dotnet run tools/make-icon.cs`. Lệnh này cũng xuất `tools/icon-preview.png` để xem trước mọi kích thước.
+- Logo trên header dùng cùng ảnh PNG, ở kích thước 20 px.
+- Sau khi sửa thiết kế, tạo lại icon bằng lệnh `dotnet run --file tools/make-icon.cs`. Lệnh này cũng xuất `tools/icon-preview.png` để xem trước mọi kích thước.
 
 ## Kiến trúc
 

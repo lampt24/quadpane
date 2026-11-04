@@ -5,7 +5,7 @@
     <Border x:Name="Card" Classes="pane">
         <DockPanel>
             <Border DockPanel.Dock="Top" Background="{DynamicResource TabBarBrush}"
-                    CornerRadius="8.5,8.5,0,0" ClipToBounds="True">
+                    CornerRadius="5,5,0,0" ClipToBounds="True">
                 <DockPanel LastChildFill="True">
                     <Button DockPanel.Dock="Right" Classes="tabAdd" Content="+" Margin="0,4,6,0"
                             ToolTip.Tip="Tab mới (Ctrl+T)" Click="AddTab_Click"/>

@@ -92,9 +92,8 @@ public partial class MainWindow : Window
 
     private void UpdateStatus()
     {
-        ActiveBadge.Text = $"PANEL {_active.Index + 1}";
+        ActiveBadge.Text = $"Panel {_active.Index + 1}";
         StatusText.Text = _active.DisplayPath;
-        Title = $"{_active.DisplayPath} — QuadPane";
     }
 
     private void Search_Click(object? sender, RoutedEventArgs e) => OpenSearch();

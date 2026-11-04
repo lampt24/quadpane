@@ -17,6 +17,7 @@
   <ItemGroup>
     <!-- Icon/logo nhúng vào app (avares://QuadPane/Assets/...) -->
     <AvaloniaResource Include="Assets\QuadPane.ico" />
+    <AvaloniaResource Include="Assets\logo-256.png" />
     <Content Include="Assets\EverythingSdk\*.dll" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Assets\EverythingSdk\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <!-- tools/ chứa script độc lập (dotnet run tools/make-icon.cs), không thuộc app -->

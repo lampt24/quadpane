@@ -51,47 +51,41 @@ static GraphicsPath Rounded(float x, float y, float w, float h, float r)
 
 static Bitmap Render(int s)
 {
-    var bmp = new Bitmap(s, s, PixelFormat.Format32bppArgb);
-    using var g = Graphics.FromImage(bmp);
-    g.SmoothingMode = SmoothingMode.AntiAlias;
-    g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-    g.Clear(Color.Transparent);
-
-    // Nền: bo góc 22%, gradient chéo xanh -> tím, thêm vệt sáng nhẹ ở nửa trên
-    using (var bg = Rounded(0, 0, s, s, s * 0.22f))
+    // Render ở độ phân giải gấp bốn lần rồi thu nhỏ để nét chéo của chữ Q rõ ở 16 px.
+    const int scale = 4;
+    int n = s * scale;
+    using var large = new Bitmap(n, n, PixelFormat.Format32bppArgb);
+    using (var g = Graphics.FromImage(large))
     {
-        using (var lg = new LinearGradientBrush(new PointF(0, 0), new PointF(s, s),
-                   Color.FromArgb(0x3B, 0x9B, 0xFF), Color.FromArgb(0x5B, 0x4B, 0xE8)))
-            g.FillPath(lg, bg);
-        // Gradient phủ hết chiều cao (GDI+ lặp lại gradient ngoài vùng của nó, gây vệt cắt ngang)
-        using (var shine = new LinearGradientBrush(new PointF(0, -1), new PointF(0, s + 1),
-                   Color.White, Color.White))
-        {
-            shine.InterpolationColors = new ColorBlend
-            {
-                Colors = [Color.FromArgb(46, 255, 255, 255), Color.FromArgb(0, 255, 255, 255), Color.FromArgb(0, 255, 255, 255)],
-                Positions = [0f, 0.55f, 1f],
-            };
-            g.FillPath(shine, bg);
-        }
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        g.ScaleTransform(n / 256f, n / 256f);
+
+        using var background = Rounded(0, 0, 256, 256, 54);
+        using var backgroundBrush = new LinearGradientBrush(new PointF(0, 0), new PointF(256, 256),
+            Color.FromArgb(0x17, 0x3E, 0x62), Color.FromArgb(0x0A, 0x20, 0x39));
+        g.FillPath(backgroundBrush, background);
+
+        using var frame = Rounded(43.5f, 43.5f, 169, 169, 31.5f);
+        using var framePen = new Pen(Color.FromArgb(0xD8, 0xF2, 0xFF), 13) { LineJoin = LineJoin.Round };
+        g.DrawPath(framePen, frame);
+        using var dividerPen = new Pen(Color.FromArgb(0xD8, 0xF2, 0xFF), 12);
+        g.DrawLine(dividerPen, 128, 44, 128, 212);
+        g.DrawLine(dividerPen, 44, 128, 212, 128);
+
+        using var active = Rounded(52, 52, 68, 68, 10);
+        using var activeBrush = new LinearGradientBrush(new PointF(52, 52), new PointF(120, 120),
+            Color.FromArgb(0x74, 0xE5, 0xFF), Color.FromArgb(0x28, 0xB9, 0xED));
+        g.FillPath(activeBrush, active);
+        using var tailPen = new Pen(Color.FromArgb(0x41, 0xD1, 0xF5), 22)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        g.DrawLine(tailPen, 173, 173, 226, 226);
     }
 
-    // Lưới 2x2 làm tròn theo pixel nguyên, căn giữa lại sau khi làm tròn
-    int gap = Math.Max(1, (int)Math.Round(s * 16.0 / 256));
-    int pad = (int)Math.Round(s * 52.0 / 256);
-    int tile = (s - 2 * pad - gap) / 2;
-    pad = (s - 2 * tile - gap) / 2;
-    float tr = s <= 16 ? 1f : Math.Max(1f, tile * 14f / 68f);
-
-    int[] pos = [pad, pad + tile + gap];
-    for (int row = 0; row < 2; row++)
-        for (int col = 0; col < 2; col++)
-        {
-            int alpha = row == 0 && col == 0 ? 255 : 115; // ô trên-trái = panel đang hoạt động
-            using var brush = new SolidBrush(Color.FromArgb(alpha, 255, 255, 255));
-            using var path = Rounded(pos[col], pos[row], tile, tile, tr);
-            g.FillPath(brush, path);
-        }
+    var bmp = new Bitmap(s, s, PixelFormat.Format32bppArgb);
+    using var outputGraphics = Graphics.FromImage(bmp);
+    outputGraphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+    outputGraphics.DrawImage(large, 0, 0, s, s);
     return bmp;
 }
 
