@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:QuadPane.Shell"
+             x:Class="QuadPane.PaneView">
+
+    <Border x:Name="Card" Classes="pane">
+        <DockPanel>
+            <!-- Thanh điều hướng của panel -->
+            <!-- Bo 2 góc trên theo thẻ (bán kính trong = 10 - độ dày viền) để nền header không lấn ra góc -->
+            <Border DockPanel.Dock="Top" Background="{DynamicResource PaneHeaderBrush}"
+                    BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="0,0,0,1"
+                    CornerRadius="8.5,8.5,0,0" Padding="6,5">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" Margin="0,0,6,0">
+                        <Button Classes="icon" Content="&#xE72B;" ToolTip.Tip="Quay lại (Alt+←)" Click="Back_Click"/>
+                        <Button Classes="icon" Content="&#xE72A;" ToolTip.Tip="Tiến tới (Alt+→)" Click="Forward_Click"/>
+                        <Button Classes="icon" Content="&#xE74A;" ToolTip.Tip="Lên thư mục cha (Alt+↑)" Click="Up_Click"/>
+                        <Button Classes="icon" Content="&#xE72C;" ToolTip.Tip="Làm mới (F5)" Click="Refresh_Click"/>
+                    </StackPanel>
+                    <ToggleButton x:Name="TreeToggle" DockPanel.Dock="Right" Classes="icon" Margin="6,0,0,0"
+                                  Content="&#xE8A0;" ToolTip.Tip="Hiện/ẩn cây thư mục"
+                                  IsCheckedChanged="TreeToggle_Changed"/>
+                    <TextBox x:Name="AddressBox" Classes="address"
+                             PlaceholderText="Nhập đường dẫn rồi nhấn Enter"
+                             KeyDown="AddressBox_KeyDown" GotFocus="AddressBox_GotFocus"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Explorer nhúng: chừa mép dưới để thấy góc bo của thẻ -->
+            <shell:ExplorerHost x:Name="Host" Margin="1,0,1,6"/>
+        </DockPanel>
+    </Border>
+</UserControl>

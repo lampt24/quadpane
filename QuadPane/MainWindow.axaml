@@ -1,0 +1,96 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="QuadPane.MainWindow"
+        Title="QuadPane"
+        Icon="/Assets/QuadPane.ico"
+        Width="1280" Height="800" MinWidth="640" MinHeight="420"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="48"
+        TransparencyLevelHint="Mica, AcrylicBlur, None"
+        TransparencyBackgroundFallback="{DynamicResource WindowFallbackBrush}"
+        Background="Transparent">
+
+    <Grid RowDefinitions="48,*,30">
+
+        <!-- ===== Thanh tiêu đề tự vẽ (nút đóng/thu nhỏ của hệ thống ở góc phải) ===== -->
+        <Grid x:Name="TitleBar" Grid.Row="0" Background="Transparent"
+              ColumnDefinitions="Auto,*,Auto,150">
+            <StackPanel Orientation="Horizontal" Spacing="10" Margin="16,0,0,0" VerticalAlignment="Center"
+                        IsHitTestVisible="False">
+                <!-- Logo (vector, cùng thiết kế với Assets/logo.svg, hệ toạ độ 256) -->
+                <Viewbox Width="24" Height="24">
+                    <Canvas Width="256" Height="256">
+                        <Border Width="256" Height="256" CornerRadius="56">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                    <GradientStop Offset="0" Color="#3B9BFF"/>
+                                    <GradientStop Offset="1" Color="#5B4BE8"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Border Width="256" Height="256" CornerRadius="56">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                    <GradientStop Offset="0" Color="#2EFFFFFF"/>
+                                    <GradientStop Offset="0.55" Color="#00FFFFFF"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Border Canvas.Left="52" Canvas.Top="52" Width="68" Height="68" CornerRadius="14" Background="White"/>
+                        <Border Canvas.Left="136" Canvas.Top="52" Width="68" Height="68" CornerRadius="14" Background="#73FFFFFF"/>
+                        <Border Canvas.Left="52" Canvas.Top="136" Width="68" Height="68" CornerRadius="14" Background="#73FFFFFF"/>
+                        <Border Canvas.Left="136" Canvas.Top="136" Width="68" Height="68" CornerRadius="14" Background="#73FFFFFF"/>
+                    </Canvas>
+                </Viewbox>
+                <TextBlock Text="QuadPane" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <!-- Chọn bố cục -->
+                <Border Background="{DynamicResource SegmentBackgroundBrush}" CornerRadius="7" Padding="2">
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                        <!-- Icon bố cục vẽ bằng vector (hệ toạ độ 16x16), màu theo Foreground của nút -->
+                        <ToggleButton x:Name="QuadMode" Classes="segment" ToolTip.Tip="4 khung" Click="Layout_Click">
+                            <Path Classes="layoutIcon" Data="M1,1h6v6h-6z M9,1h6v6h-6z M1,9h6v6h-6z M9,9h6v6h-6z"/>
+                        </ToggleButton>
+                        <ToggleButton x:Name="TripleMode" Classes="segment" ToolTip.Tip="3 khung" Click="Layout_Click">
+                            <Path Classes="layoutIcon" Data="M1,1h6v14h-6z M9,1h6v6h-6z M9,9h6v6h-6z"/>
+                        </ToggleButton>
+                        <ToggleButton x:Name="DualMode" Classes="segment" ToolTip.Tip="2 khung" Click="Layout_Click">
+                            <Path Classes="layoutIcon" Data="M1,1h6v14h-6z M9,1h6v14h-6z"/>
+                        </ToggleButton>
+                        <ToggleButton x:Name="SingleMode" Classes="segment" ToolTip.Tip="1 khung" Click="Layout_Click">
+                            <Path Classes="layoutIcon" Data="M1,1h14v14h-14z"/>
+                        </ToggleButton>
+                    </StackPanel>
+                </Border>
+                <Button Classes="icon" Content="&#xE9A6;" ToolTip.Tip="Chia đều các panel" Click="Equalize_Click"/>
+                <Button x:Name="ThemeButton" Classes="icon" Click="Theme_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ===== Lưới 4 panel với 2 splitter cắt nhau ===== -->
+        <Grid x:Name="PaneGrid" Grid.Row="1" Margin="10,8,10,0"
+              ColumnDefinitions="*,8,*" RowDefinitions="*,8,*">
+            <GridSplitter x:Name="VSplitter" Grid.Column="1" Grid.RowSpan="3"
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" CornerRadius="3"/>
+            <GridSplitter x:Name="HSplitter" Grid.Row="1" Grid.ColumnSpan="3"
+                          ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" CornerRadius="3"/>
+        </Grid>
+
+        <!-- ===== Thanh trạng thái ===== -->
+        <Grid Grid.Row="2" Margin="18,0" ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="4" Padding="6,1">
+                    <TextBlock x:Name="ActiveBadge" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"/>
+                </Border>
+                <TextBlock x:Name="StatusText" FontSize="12" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+            <TextBlock Grid.Column="1" FontSize="11.5" VerticalAlignment="Center"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       Text="Ctrl+1..4 chọn panel  ·  Ctrl+L ô địa chỉ  ·  Alt+←/→/↑ điều hướng  ·  F5 làm mới"/>
+        </Grid>
+    </Grid>
+</Window>

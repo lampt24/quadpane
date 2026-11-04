@@ -1,0 +1,122 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="QuadPane.App"
+             RequestedThemeVariant="Default">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="WindowFallbackBrush" Color="#F3F3F3"/>
+                    <SolidColorBrush x:Key="ChromeBrush" Color="#B3F3F3F3"/>
+                    <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="PaneHeaderBrush" Color="#F9F9F9"/>
+                    <SolidColorBrush x:Key="PaneBorderBrush" Color="#E5E5E5"/>
+                    <SolidColorBrush x:Key="AccentBrush" Color="#0067C0"/>
+                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#260067C0"/>
+                    <SolidColorBrush x:Key="MutedTextBrush" Color="#616161"/>
+                    <SolidColorBrush x:Key="SegmentBackgroundBrush" Color="#0F000000"/>
+                    <SolidColorBrush x:Key="SplitterHoverBrush" Color="#590067C0"/>
+                    <SolidColorBrush x:Key="AddressBackgroundBrush" Color="#FFFFFF"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="WindowFallbackBrush" Color="#191919"/>
+                    <SolidColorBrush x:Key="ChromeBrush" Color="#99191919"/>
+                    <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#202020"/>
+                    <SolidColorBrush x:Key="PaneHeaderBrush" Color="#272727"/>
+                    <SolidColorBrush x:Key="PaneBorderBrush" Color="#333333"/>
+                    <SolidColorBrush x:Key="AccentBrush" Color="#4CC2FF"/>
+                    <SolidColorBrush x:Key="AccentSoftBrush" Color="#334CC2FF"/>
+                    <SolidColorBrush x:Key="MutedTextBrush" Color="#A0A0A0"/>
+                    <SolidColorBrush x:Key="SegmentBackgroundBrush" Color="#14FFFFFF"/>
+                    <SolidColorBrush x:Key="SplitterHoverBrush" Color="#594CC2FF"/>
+                    <SolidColorBrush x:Key="AddressBackgroundBrush" Color="#1C1C1C"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme/>
+
+        <!-- Nút chỉ có icon -->
+        <Style Selector="Button.icon, ToggleButton.icon">
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Focusable" Value="False"/>
+        </Style>
+
+        <!-- Nút trong nhóm chọn bố cục (segmented control) -->
+        <Style Selector="ToggleButton.segment">
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Focusable" Value="False"/>
+        </Style>
+
+        <Style Selector="Path.layoutIcon">
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="Fill" Value="{Binding $parent[ToggleButton].Foreground}"/>
+        </Style>
+
+        <!-- Thẻ panel -->
+        <Style Selector="Border.pane">
+            <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.pane.active">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+        </Style>
+
+        <!-- Ô địa chỉ -->
+        <Style Selector="TextBox.address">
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="{DynamicResource AddressBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
+        </Style>
+
+        <Style Selector="TextBox.address.error">
+            <Setter Property="BorderBrush" Value="#E81123"/>
+        </Style>
+
+        <!-- Splitter mảnh, chỉ hiện khi rê chuột -->
+        <Style Selector="GridSplitter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="MinHeight" Value="0"/>
+        </Style>
+        <Style Selector="GridSplitter:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SplitterHoverBrush}"/>
+        </Style>
+    </Application.Styles>
+</Application>

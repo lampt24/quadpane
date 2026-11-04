@@ -1,0 +1,23 @@
+# .NET build and publish output
+**/bin/
+**/obj/
+**/publish/
+**/artifacts/
+
+# Visual Studio and editor state
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local tooling and reverse-engineering output
+/ghidra_12.2_PUBLIC/
+/re_output/
+/Q-Dir_Installer_UC.exe
+
+# Operating system files
+Thumbs.db
+Desktop.ini
+.DS_Store
