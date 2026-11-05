@@ -114,6 +114,7 @@ public sealed class ExplorerHost : NativeControlHost
         if (_cookie != 0) _browser.Unadvise(_cookie);
         _cookie = 0;
         _sink = null;
+        ((IObjectWithSite)_browser).SetSite(null);
         _browser.Destroy();
         Marshal.ReleaseComObject(_browser);
         _browser = null;

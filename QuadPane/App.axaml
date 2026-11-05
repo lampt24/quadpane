@@ -56,7 +56,7 @@
                     <SolidColorBrush x:Key="TabHoverBrush" Color="#18FFFFFF"/>
                     <SolidColorBrush x:Key="TabBarBrush" Color="#252526"/>
                     <SolidColorBrush x:Key="TabSelectedBrush" Color="#383838"/>
-                    <SolidColorBrush x:Key="SelectedIconForegroundBrush" Color="#4CC2FF"/>
+                    <SolidColorBrush x:Key="SelectedIconForegroundBrush" Color="#FFFFFF"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
@@ -107,7 +107,10 @@
             <Setter Property="Width" Value="14"/>
             <Setter Property="Height" Value="14"/>
             <Setter Property="Stretch" Value="Uniform"/>
-            <Setter Property="Fill" Value="{Binding $parent[ToggleButton].Foreground}"/>
+            <Setter Property="Fill" Value="{DynamicResource TitleTextBrush}"/>
+        </Style>
+        <Style Selector="Path.layoutIcon.selected">
+            <Setter Property="Fill" Value="{DynamicResource SelectedIconForegroundBrush}"/>
         </Style>
 
         <!-- Thẻ panel -->

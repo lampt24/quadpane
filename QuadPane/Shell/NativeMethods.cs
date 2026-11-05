@@ -40,13 +40,13 @@ internal interface IObjectWithSite
     [PreserveSig] int GetSite(ref Guid iid, out IntPtr site);
 }
 
-[ComVisible(true), Guid("6d5140c1-7436-11ce-8034-00aa006009fa"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+[ComImport, Guid("6d5140c1-7436-11ce-8034-00aa006009fa"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IComServiceProvider
 {
     [PreserveSig] int QueryService(ref Guid service, ref Guid iid, out IntPtr result);
 }
 
-[ComVisible(true), Guid("e07010ec-bc17-44c0-97b0-46c7c95b9edc"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+[ComImport, Guid("e07010ec-bc17-44c0-97b0-46c7c95b9edc"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IExplorerPaneVisibility
 {
     [PreserveSig] int GetPaneState(ref Guid pane, out uint state);
