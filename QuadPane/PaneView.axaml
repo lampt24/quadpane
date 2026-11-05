@@ -6,7 +6,7 @@
         <DockPanel>
             <Border DockPanel.Dock="Top" Background="{DynamicResource TabBarBrush}" ClipToBounds="True">
                 <DockPanel LastChildFill="True">
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" Margin="4,2,5,2">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" Margin="4,2,5,0">
                         <Button Classes="tabAction" AutomationProperties.Name="Mở Claude Code tại thư mục này"
                                 ToolTip.Tip="Mở Claude Code tại thư mục này" Click="Claude_Click">
                             <Image Source="/Assets/claude.png" Width="18" Height="18"/>
@@ -24,7 +24,7 @@
                         <Button Classes="tabAction copyPath" Content="&#xE8C8;" AutomationProperties.Name="Sao chép đường dẫn mục được chọn"
                                 ToolTip.Tip="Sao chép đường dẫn mục chọn; nếu không chọn, sao chép thư mục đang mở" Click="CopyPath_Click"/>
                     </StackPanel>
-                    <ScrollViewer Margin="6,2,0,2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ScrollViewer Margin="6,2,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                         <StackPanel x:Name="TabStrip" Orientation="Horizontal" Spacing="3">
                             <Button x:Name="TabAdd" Classes="tabAdd" Content="+" Margin="2,0,0,0"
                                     AutomationProperties.Name="Thêm tab"
@@ -37,7 +37,7 @@
             <!-- Thanh điều hướng nối liền với tab đang chọn -->
             <Border x:Name="NavigationBar" DockPanel.Dock="Top" Background="{DynamicResource PaneHeaderBrush}"
                     BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="0,0,0,1"
-                    Padding="6,5">
+                    Padding="6,0,6,5">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" Margin="0,0,6,0">
                         <Button Classes="icon" Content="&#xE72B;" ToolTip.Tip="Quay lại (Alt+←)" Click="Back_Click"/>

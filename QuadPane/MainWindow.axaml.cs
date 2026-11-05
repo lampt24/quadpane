@@ -440,8 +440,8 @@ public partial class MainWindow : Window
         rows[2].Height = bottomUsed ? Star(topUsed ? _layout.BottomRow : 1) : new GridLength(0);
 
         bool vSplit = leftUsed && rightUsed, hSplit = topUsed && bottomUsed;
-        cols[1].Width = new GridLength(vSplit ? 8 : 0);
-        rows[1].Height = new GridLength(hSplit ? 8 : 0);
+        cols[1].Width = new GridLength(vSplit ? 4 : 0);
+        rows[1].Height = new GridLength(hSplit ? 4 : 0);
         VSplitter.IsVisible = vSplit;
         HSplitter.IsVisible = hSplit;
     }

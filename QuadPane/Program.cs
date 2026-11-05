@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text;
+using QuadPane.Shell;
 
 namespace QuadPane;
 
@@ -21,6 +22,7 @@ internal static class Program
         if (args is ["--check-git-status"]) { GitService.SelfCheckAsync().GetAwaiter().GetResult(); return; }
         if (args is ["--check-search-result"]) { EverythingSearch.SelfCheck(); return; }
         if (args is ["--check-tab-homes"]) { LayoutStore.SelfCheckTabHomes(); return; }
+        if (args is ["--check-shell-interop"]) { ShellContextMenu.SelfCheck(); return; }
         AppDomain.CurrentDomain.UnhandledException += (_, e) => App.LogCrash(e.ExceptionObject as Exception);
         if (!OperatingSystem.IsWindows())
         {

@@ -61,22 +61,43 @@
         </Grid>
 
         <!-- ===== Lưới 4 panel với 2 splitter cắt nhau ===== -->
-        <Grid x:Name="PaneGrid" Grid.Row="1" Margin="1,4,1,6"
+        <Grid x:Name="PaneGrid" Grid.Row="1" Margin="4"
               ColumnDefinitions="*,1,*" RowDefinitions="*,1,*">
             <GridSplitter x:Name="VSplitter" Grid.Column="1" Grid.RowSpan="3"
-                          Width="5" HorizontalAlignment="Center"
+                          Width="4" HorizontalAlignment="Center"
                           ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" CornerRadius="0"/>
             <GridSplitter x:Name="HSplitter" Grid.Row="1" Grid.ColumnSpan="3"
-                          Height="5" VerticalAlignment="Center"
+                          Height="4" VerticalAlignment="Center"
                           ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" CornerRadius="0"/>
         </Grid>
 
         <!-- ===== Thanh trạng thái ===== -->
         <Border Grid.Row="2" MinHeight="30" Background="{DynamicResource StatusSurfaceBrush}"
                 BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,1,0,0">
-            <Grid Margin="4,0,10,0" ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
-                <StackPanel x:Name="GitActions" Grid.Column="0" Orientation="Horizontal" Spacing="2"
-                            VerticalAlignment="Center" IsVisible="False">
+            <Grid Margin="4,0,10,0" ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                <Button Grid.Column="0" Classes="icon" Content="&#xE713;" Height="26" Width="26" Focusable="True"
+                        ToolTip.Tip="Cài đặt" AutomationProperties.Name="Cài đặt">
+                    <Button.Flyout>
+                        <Flyout Placement="Top">
+                            <StackPanel Margin="12" Spacing="8">
+                                <TextBlock Text="Cài đặt" FontWeight="SemiBold"/>
+                                <CheckBox x:Name="StartupCheck" Content="Khởi động cùng Windows"
+                                          IsCheckedChanged="StartupCheck_Changed"/>
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+                <TextBlock x:Name="StatusText" Grid.Column="1" FontSize="11.5" FontWeight="Medium"
+                           Foreground="{DynamicResource StatusTextBrush}" VerticalAlignment="Center"/>
+                <Button x:Name="UpdateButton" Grid.Column="3" Classes="update" IsVisible="False"
+                        ToolTip.Tip="Tải và cài phiên bản mới" Click="UpdateButton_Click"/>
+                <Button x:Name="UpdateErrorButton" Grid.Column="4" Classes="update" IsVisible="False"
+                        Content="Lỗi kiểm tra cập nhật" Click="UpdateErrorButton_Click"/>
+                <Grid x:Name="GitControls" Grid.Column="5" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto"
+                      ColumnSpacing="6" Margin="12,2,0,2" HorizontalAlignment="Right"
+                      VerticalAlignment="Center" IsVisible="False">
+                    <StackPanel x:Name="GitActions" Grid.Column="0" Orientation="Horizontal" Spacing="2"
+                                VerticalAlignment="Center">
                     <Button Classes="gitAction" ToolTip.Tip="Git fetch"
                             AutomationProperties.Name="Git fetch" Click="GitFetch_Click">
                         <Path Classes="gitIcon" Data="M20 11a8 8 0 0 0-14-5 M4 4v5h5 M4 13a8 8 0 0 0 14 5 M20 20v-5h-5"/>
@@ -94,38 +115,19 @@
                             AutomationProperties.Name="Xem Git log" Click="GitLog_Click">
                         <Path Classes="gitIcon" Data="M3 9a9 9 0 1 1 0 6 M3 3v6h6 M12 7v5l3 2"/>
                     </Button>
-                </StackPanel>
-                <Button Grid.Column="1" Classes="icon" Content="&#xE713;" Height="26" Width="26" Focusable="True"
-                        ToolTip.Tip="Cài đặt" AutomationProperties.Name="Cài đặt">
-                    <Button.Flyout>
-                        <Flyout Placement="Top">
-                            <StackPanel Margin="12" Spacing="8">
-                                <TextBlock Text="Cài đặt" FontWeight="SemiBold"/>
-                                <CheckBox x:Name="StartupCheck" Content="Khởi động cùng Windows"
-                                          IsCheckedChanged="StartupCheck_Changed"/>
-                            </StackPanel>
-                        </Flyout>
-                    </Button.Flyout>
-                </Button>
-                <TextBlock x:Name="StatusText" Grid.Column="2" FontSize="11.5" FontWeight="Medium"
-                           Foreground="{DynamicResource StatusTextBrush}" VerticalAlignment="Center"/>
-                <Button x:Name="UpdateButton" Grid.Column="4" Classes="update" IsVisible="False"
-                        ToolTip.Tip="Tải và cài phiên bản mới" Click="UpdateButton_Click"/>
-                <Button x:Name="UpdateErrorButton" Grid.Column="5" Classes="update" IsVisible="False"
-                        Content="Lỗi kiểm tra cập nhật" Click="UpdateErrorButton_Click"/>
-                <Grid x:Name="GitControls" Grid.Column="6" ColumnDefinitions="Auto,Auto,Auto,Auto"
-                      ColumnSpacing="6" Margin="12,2,0,2" HorizontalAlignment="Right"
-                      VerticalAlignment="Center" IsVisible="False">
-                    <Path Grid.Column="0" Classes="gitIcon" Width="15" Height="15" VerticalAlignment="Center"
+                    </StackPanel>
+                    <Path Grid.Column="1" Classes="gitIcon" Width="15" Height="15" VerticalAlignment="Center"
+                          RenderTransform="translate(0px, 2px)"
                           Stroke="{DynamicResource StatusMutedTextBrush}"
                           Data="M2 12h6 M16 12h6 M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8"/>
-                    <TextBlock x:Name="GitCountText" Grid.Column="1" VerticalAlignment="Center" FontSize="11"
+                    <TextBlock x:Name="GitCountText" Grid.Column="2" VerticalAlignment="Center" FontSize="11"
                                ToolTip.Tip="Số file đã stage / số file chưa stage, gồm file mới"
                                Foreground="{DynamicResource StatusTextBrush}"/>
-                    <Path Grid.Column="2" Classes="gitIcon" Width="15" Height="15" Margin="7,0,0,0" VerticalAlignment="Center"
+                    <Path Grid.Column="3" Classes="gitIcon" Width="15" Height="15" Margin="7,0,0,0" VerticalAlignment="Center"
+                          RenderTransform="translate(0px, 2px)"
                           Stroke="{DynamicResource StatusMutedTextBrush}"
                           Data="M6 6v12 M6 6a9 9 0 0 0 9 9 M6 0a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M6 18a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M18 12a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/>
-                    <Viewbox Grid.Column="3" MaxWidth="320" Stretch="Uniform" StretchDirection="DownOnly"
+                    <Viewbox Grid.Column="4" MaxWidth="320" Stretch="Uniform" StretchDirection="DownOnly"
                              VerticalAlignment="Center">
                         <TextBlock x:Name="GitBranchText" FontSize="11" TextWrapping="NoWrap"
                                    Foreground="{DynamicResource StatusTextBrush}"/>

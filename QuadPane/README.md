@@ -34,6 +34,7 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 - Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn mục đang chọn (nhiều mục: mỗi đường dẫn một dòng; không chọn: thư mục đang mở). Claude/Codex mở trong Windows Terminal nếu có, nếu không dùng PowerShell. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt ở góc trái thanh trạng thái có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
 - Thanh trạng thái hiển thị số mục trong tab; khi thư mục thuộc một Git repository và có `git` trong PATH, thanh hiện branch, số file đã stage/chưa stage, cùng nút Fetch, Pull (`--ff-only`) và Push. Nút Git log chỉ hiện khi có TortoiseGit và mở lịch sử trong TortoiseGit. Không tự tạo merge commit.
 - Ô Everything nằm trên thanh tiêu đề. Tab kết quả giữ panel ban đầu khi đổi panel/tab rồi tiếp tục gõ; QuadPane chọn lại tab đó. Danh sách dùng font hệ thống và các cột Name, Date modified, Type, Size; tooltip của mục hiện đầy đủ đường dẫn. Enter/↓ chuyển tới danh sách; trong danh sách, Enter hoặc nhấp đúp mở mục. Tab tìm kiếm chỉ tồn tại trong phiên chạy.
+- Kết quả Everything hiển thị icon file từ Windows Shell. Nhấp phải vào mục để mở context menu Windows, gồm các lệnh do shell extension đã cài cung cấp.
 - Theme đổi theo vòng: **Theo hệ thống → Sáng → Tối**. Phần Explorer nhúng (danh sách file, header cột, cây thư mục, menu chuột phải) và khung cửa sổ đổi màu theo.
 
 ## Logo & icon

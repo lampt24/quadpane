@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using Avalonia.Media.Imaging;
+using QuadPane.Shell;
 
 namespace QuadPane;
 
@@ -7,6 +9,7 @@ public sealed record SearchResult(string Name, string Directory, string FullPath
     DateTime? Modified, long? Size, string TypeName)
 {
     public string Icon => IsFolder ? "\uE8B7" : "\uE8A5";
+    public Bitmap? IconSource => ShellFileIcon.Get(FullPath, IsFolder);
     public string ModifiedText => Modified?.ToString("yyyy/MM/dd HH:mm") ?? "";
     public string SizeText => Size is long size && size >= 0 && !IsFolder
         ? $"{size / 1024 + (size % 1024 == 0 ? 0 : 1):N0} KB" : "";

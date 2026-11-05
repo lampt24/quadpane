@@ -1,7 +1,10 @@
 using System.Diagnostics;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
+using QuadPane.Shell;
 
 namespace QuadPane;
 
@@ -14,7 +17,11 @@ public partial class SearchResultsView : UserControl
     public event Action<string>? OpenFolder;
     public event Action? ResultsChanged;
 
-    public SearchResultsView() => InitializeComponent();
+    public SearchResultsView()
+    {
+        InitializeComponent();
+        ResultsList.AddHandler(PointerPressedEvent, ResultsList_PointerPressed, RoutingStrategies.Tunnel);
+    }
 
     public async void Search(string query)
     {
@@ -63,9 +70,34 @@ public partial class SearchResultsView : UserControl
     private void ResultsList_KeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter) { OpenSelected(); e.Handled = true; }
+        else if (e.Key == Key.Apps || e.Key == Key.F10 && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            if (ResultsList.SelectedItem is SearchResult result) ShowContextMenu(result);
+            e.Handled = true;
+        }
     }
 
     private void ResultsList_DoubleTapped(object? sender, TappedEventArgs e) => OpenSelected();
+
+    private void ResultsList_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(ResultsList).Properties.IsRightButtonPressed || e.Source is not Visual visual) return;
+        var item = visual.FindAncestorOfType<ListBoxItem>(includeSelf: true);
+        if (item?.DataContext is not SearchResult result) return;
+        ResultsList.SelectedItem = result;
+        e.Handled = true;
+        ShowContextMenu(result);
+    }
+
+    private void ShowContextMenu(SearchResult result)
+    {
+        try
+        {
+            var owner = TopLevel.GetTopLevel(this)?.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            ShellContextMenu.Show(owner, result.FullPath);
+        }
+        catch (Exception ex) { ResultStatus.Text = $"Không thể mở menu Windows: {ex.Message}"; }
+    }
 
     private void OpenSelected()
     {
