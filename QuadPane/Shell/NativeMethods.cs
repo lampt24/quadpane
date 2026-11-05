@@ -191,6 +191,9 @@ internal static class NativeMethods
     public const uint WM_LBUTTONDOWN = 0x0201;
     public const uint WM_RBUTTONDOWN = 0x0204;
     public const uint WM_MBUTTONDOWN = 0x0207;
+    public const uint WM_XBUTTONDOWN = 0x020B;
+    public const uint WM_XBUTTONUP = 0x020C;
+    public const uint WM_XBUTTONDBLCLK = 0x020D;
 
     public const int WH_GETMESSAGE = 3;
     public const int PM_REMOVE = 1;

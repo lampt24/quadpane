@@ -109,10 +109,23 @@ public partial class PaneView : UserControl
             AddTab(paths[i], ids[i], select: false, home: homes is not null && i < homes.Length ? homes[i] : null);
         if (_tabs.Count == 0) AddTab(defaultPath, $"QuadPane.Pane{index}", select: false);
         SelectTab(Math.Clamp(selectedIndex, 0, _tabs.Count - 1), focus: false);
-        AddHandler(PointerPressedEvent, (_, _) => Activated?.Invoke(this), RoutingStrategies.Tunnel);
+        AddHandler(PointerPressedEvent, (_, e) =>
+        {
+            Activated?.Invoke(this);
+            var buttons = e.GetCurrentPoint(this).Properties;
+            if (buttons.IsXButton1Pressed) { GoBack(); e.Handled = true; }
+            else if (buttons.IsXButton2Pressed) { GoForward(); e.Handled = true; }
+        }, RoutingStrategies.Tunnel);
     }
 
-    public bool IsActive { set => Card.Classes.Set("active", value); }
+    public bool IsActive
+    {
+        set
+        {
+            Card.Classes.Set("active", value);
+            ZIndex = value ? 1 : 0;
+        }
+    }
     public bool Dark
     {
         set

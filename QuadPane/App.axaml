@@ -22,7 +22,7 @@
                     <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#FFFFFF"/>
                     <SolidColorBrush x:Key="PaneHeaderBrush" Color="#F9F9F9"/>
                     <SolidColorBrush x:Key="PaneBorderBrush" Color="#E5E5E5"/>
-                    <BoxShadows x:Key="PaneActiveGlow">0 0 7 1 #660067C0</BoxShadows>
+                    <BoxShadows x:Key="PaneActiveGlow">0 0 8 2 #990067C0</BoxShadows>
                     <SolidColorBrush x:Key="AccentBrush" Color="#0067C0"/>
                     <SolidColorBrush x:Key="AccentSoftBrush" Color="#260067C0"/>
                     <SolidColorBrush x:Key="MutedTextBrush" Color="#616161"/>
@@ -49,7 +49,7 @@
                     <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#202020"/>
                     <SolidColorBrush x:Key="PaneHeaderBrush" Color="#272727"/>
                     <SolidColorBrush x:Key="PaneBorderBrush" Color="#333333"/>
-                    <BoxShadows x:Key="PaneActiveGlow">0 0 7 1 #664CC2FF</BoxShadows>
+                    <BoxShadows x:Key="PaneActiveGlow">0 0 8 2 #994CC2FF</BoxShadows>
                     <SolidColorBrush x:Key="AccentBrush" Color="#4CC2FF"/>
                     <SolidColorBrush x:Key="AccentSoftBrush" Color="#334CC2FF"/>
                     <SolidColorBrush x:Key="MutedTextBrush" Color="#A0A0A0"/>
@@ -133,7 +133,7 @@
             <Setter Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="0"/>
-            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="ClipToBounds" Value="False"/>
         </Style>
         <Style Selector="Border.pane.active">
             <Setter Property="BoxShadow" Value="{DynamicResource PaneActiveGlow}"/>
@@ -196,6 +196,10 @@
             <Setter Property="Stroke" Value="{DynamicResource TabSelectedTextBrush}"/>
             <Setter Property="StrokeThickness" Value="1.5"/>
             <Setter Property="StrokeLineCap" Value="Round"/>
+        </Style>
+        <Style Selector="Button.tabClose Path">
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Height" Value="8"/>
         </Style>
         <Style Selector="Button.tabClose:pointerover, Button.tabAdd:pointerover">
             <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>

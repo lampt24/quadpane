@@ -239,6 +239,7 @@ public partial class MainWindow : Window
             ToolTip.SetTip(GitBranchText, info.Branch);
             _tortoiseGit = GitService.FindTortoiseGit();
             GitLogButton.IsVisible = _tortoiseGit is not null;
+            GitSwitchButton.IsVisible = _tortoiseGit is not null;
             GitControls.IsVisible = true;
             GitActions.IsVisible = true;
         }
@@ -259,16 +260,19 @@ public partial class MainWindow : Window
     private void GitPull_Click(object? sender, RoutedEventArgs e) => _ = RunGitActionAsync("pull");
     private void GitPush_Click(object? sender, RoutedEventArgs e) => _ = RunGitActionAsync("push");
 
-    private void GitLog_Click(object? sender, RoutedEventArgs e)
+    private void GitLog_Click(object? sender, RoutedEventArgs e) => OpenTortoiseGit("log");
+    private void GitSwitch_Click(object? sender, RoutedEventArgs e) => OpenTortoiseGit("switch");
+
+    private void OpenTortoiseGit(string command)
     {
         if (_gitFolder is not { } folder || _tortoiseGit is not { } exe) return;
         try
         {
             var start = new ProcessStartInfo(exe) { UseShellExecute = true, WorkingDirectory = folder };
-            start.ArgumentList.Add("/command:log");
+            start.ArgumentList.Add($"/command:{command}");
             start.ArgumentList.Add($"/path:{folder}");
             using var process = Process.Start(start)
-                ?? throw new InvalidOperationException("Không mở được TortoiseGit log.");
+                ?? throw new InvalidOperationException("Không mở được TortoiseGit.");
         }
         catch (Exception ex)
         {
@@ -567,12 +571,26 @@ public partial class MainWindow : Window
     {
         uint m = msg.message;
         bool isMouseDown = m is WM_LBUTTONDOWN or WM_RBUTTONDOWN or WM_MBUTTONDOWN;
+        bool isXButton = m is WM_XBUTTONDOWN or WM_XBUTTONUP or WM_XBUTTONDBLCLK;
         bool isKeyDown = m is WM_KEYDOWN or WM_SYSKEYDOWN;
-        if (!isMouseDown && !isKeyDown) return false;
+        if (!isMouseDown && !isXButton && !isKeyDown) return false;
 
         IntPtr target = msg.hwnd;
         var pane = _panes.FirstOrDefault(p => p.Owns(target));
         if (pane == null) return false;
+
+        if (isXButton)
+        {
+            var navigation = MapXButton(msg.wParam);
+            if (navigation == Shortcut.None) return false;
+            if (m == WM_XBUTTONDOWN) Dispatcher.UIThread.Post(() =>
+            {
+                SetActive(pane);
+                if (navigation == Shortcut.Back) pane.GoBack();
+                else pane.GoForward();
+            });
+            return true;
+        }
 
         if (pane != _active)
         {
@@ -589,6 +607,21 @@ public partial class MainWindow : Window
         }
         // Delete, F2, Ctrl+C/X/V/A, ... do chính Explorer xử lý
         return pane.TranslateAccelerator(ref msg);
+    }
+
+    private static Shortcut MapXButton(IntPtr wParam) => ((wParam.ToInt64() >> 16) & 0xFFFF) switch
+    {
+        1 => Shortcut.Back,
+        2 => Shortcut.Forward,
+        _ => Shortcut.None,
+    };
+
+    internal static void SelfCheckMouseNavigation()
+    {
+        if (MapXButton((IntPtr)0x10000) != Shortcut.Back ||
+            MapXButton((IntPtr)0x20000) != Shortcut.Forward ||
+            MapXButton(IntPtr.Zero) != Shortcut.None)
+            throw new Exception("Mouse navigation mapping failed.");
     }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)

@@ -123,6 +123,13 @@
                             <Path Classes="gitIcon" Data="M3 9a9 9 0 1 1 0 6 M3 3v6h6 M12 7v5l3 2"/>
                         </Viewbox>
                     </Button>
+                    <Button x:Name="GitSwitchButton" Classes="gitAction" IsVisible="False"
+                            ToolTip.Tip="Đổi branch bằng TortoiseGit"
+                            AutomationProperties.Name="Đổi Git branch" Click="GitSwitch_Click">
+                        <Viewbox Width="14" Height="14">
+                            <Path Classes="gitIcon" Data="M6 3v12a3 3 0 0 0 3 3h9 M14 14l4 4-4 4 M6 3a2 2 0 1 0 0 4a2 2 0 1 0 0-4"/>
+                        </Viewbox>
+                    </Button>
                     </StackPanel>
                     <Viewbox Grid.Column="1" Width="14" Height="14" VerticalAlignment="Center">
                         <Path Classes="gitIcon" Stroke="{DynamicResource StatusMutedTextBrush}"
