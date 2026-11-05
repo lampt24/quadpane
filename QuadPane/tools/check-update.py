@@ -17,4 +17,7 @@ for rid in ("win-x64", "win-x86", "win-arm64"):
     name = f"QuadPane-{tag}-{rid}.zip"
     assert name in assets, name
     assert re.search(rf"^[0-9a-f]{{64}}  {re.escape(name)}$", sums, re.MULTILINE), name
-print(f"Release {tag}: đủ 3 gói và SHA256SUMS.txt")
+installer = f"QuadPane-{tag}-win-x64-setup.exe"
+assert installer in assets, installer
+assert re.search(rf"^[0-9a-f]{{64}}  {re.escape(installer)}$", sums, re.MULTILINE), installer
+print(f"Release {tag}: đủ 3 gói ZIP, bộ cài và SHA256SUMS.txt")

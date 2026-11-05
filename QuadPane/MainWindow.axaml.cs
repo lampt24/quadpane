@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -19,6 +20,8 @@ public partial class MainWindow : Window
     private PaneView _active;
     private LayoutMode _mode;
     private SearchWindow? _searchWindow;
+    private bool _startupSettingReady;
+    private const string StartupRegistryKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
     // Hook message của thread UI: phím/chuột trong cửa sổ Win32 của Explorer
     // không đi qua hệ thống input của Avalonia, nên phải bắt ở mức Win32.
@@ -39,6 +42,13 @@ public partial class MainWindow : Window
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
         Title = $"QuadPane v{version}";
         VersionLabel.Text = $"v{version}";
+        if (OperatingSystem.IsWindows())
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey);
+            StartupCheck.IsChecked = key?.GetValue("QuadPane") is string value &&
+                value == $"\"{Environment.ProcessPath}\"";
+        }
+        _startupSettingReady = true;
         _layout = layout;
         _hookProc = GetMessageHook;
 
@@ -119,11 +129,39 @@ public partial class MainWindow : Window
 
     private void UpdateStatus()
     {
-        ActiveBadge.Text = $"Panel {_active.Index + 1}";
         StatusText.Text = _active.DisplayPath;
     }
 
     private void Search_Click(object? sender, RoutedEventArgs e) => OpenSearch();
+
+    private void StartupCheck_Changed(object? sender, RoutedEventArgs e)
+    {
+        if (!_startupSettingReady || !OperatingSystem.IsWindows()) return;
+        var enabled = StartupCheck.IsChecked == true;
+        try
+        {
+            if (enabled)
+            {
+                var exe = Environment.ProcessPath;
+                if (exe is null || !Path.GetFileName(exe).Equals("QuadPane.exe", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("Chỉ bật được cho bản QuadPane đã đóng gói.");
+                using var key = Registry.CurrentUser.CreateSubKey(StartupRegistryKey);
+                key.SetValue("QuadPane", $"\"{exe}\"");
+            }
+            else
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey, writable: true);
+                key?.DeleteValue("QuadPane", throwOnMissingValue: false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _startupSettingReady = false;
+            StartupCheck.IsChecked = !enabled;
+            _startupSettingReady = true;
+            UpdateService.ShowError(this, ex.Message, "Cài đặt QuadPane");
+        }
+    }
 
     private void OpenSearch()
     {

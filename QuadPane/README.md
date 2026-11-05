@@ -16,7 +16,7 @@ Cần Windows 10/11, vì mỗi panel nhúng Explorer Browser của Windows.
 
 Workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml) chạy mỗi khi có push lên `main`, gồm cả commit được merge vào nhánh này. Sau khi build thành công, workflow tự tạo tag và GitHub Release dạng `v0.0.N`, với `N` là số lần chạy workflow. Tag trỏ tới commit vừa được build; chạy lại cùng một workflow sẽ cập nhật các gói của release đó.
 
-Mỗi release có gói ZIP tự chứa .NET cho Windows x64, ARM64 và x86, cùng file `SHA256SUMS.txt`. Tải đúng gói theo kiến trúc máy, giải nén rồi chạy `QuadPane.exe`; không cần cài .NET Runtime.
+Mỗi release có bộ cài `QuadPane-v0.0.N-win-x64-setup.exe`, gói ZIP tự chứa .NET cho Windows x64, ARM64 và x86, cùng file `SHA256SUMS.txt`. Bộ cài đặt mặc định vào `%LocalAppData%\Programs\QuadPane` và tạo lối tắt trong Start Menu. Với gói ZIP, tải đúng kiến trúc, giải nén vào thư mục riêng rồi chạy `QuadPane.exe`; không cần cài .NET Runtime.
 
 Bản Release kiểm tra GitHub khi khởi động. Khi có version mới, ứng dụng hỏi trước khi tải; gói ZIP được kiểm tra SHA-256, cài sau khi cửa sổ đóng rồi tự mở lại. Cần quyền ghi vào thư mục cài đặt. Bản cũ được giữ trong thư mục `.QuadPane-backup-*` cạnh thư mục ứng dụng để có thể khôi phục thủ công nếu cần. Bản Debug không tự cập nhật.
 
@@ -26,8 +26,9 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 
 - Thanh tiêu đề tự vẽ (`ExtendClientAreaToDecorationsHint`) chứa logo, tên app, nút chọn bố cục 4/3/2/1 khung, nút chia đều và nút đổi theme.
 - Nền Mica trên Windows 11; các máy không hỗ trợ dùng màu nền thay thế.
-- Mỗi panel là một thẻ bo góc; panel đang hoạt động có viền màu nhấn (accent).
+- Panel đang hoạt động có viền màu nhấn (accent).
 - Mỗi panel có dải tab riêng. Tab mới mở tại `C:\`. Mỗi tab giữ Explorer Browser và lịch sử điều hướng riêng trong phiên chạy; các thư mục và tab đang chọn được khôi phục ở lần mở sau.
+- Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt trên thanh tiêu đề có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
 - Theme đổi theo vòng: **Theo hệ thống → Sáng → Tối**. Phần Explorer nhúng (danh sách file, header cột, cây thư mục, menu chuột phải) và khung cửa sổ đổi màu theo.
 
 ## Logo & icon

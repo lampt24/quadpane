@@ -5,13 +5,25 @@
     <Border x:Name="Card" Classes="pane">
         <DockPanel>
             <Border DockPanel.Dock="Top" Background="{DynamicResource TabBarBrush}" ClipToBounds="True">
-                <ScrollViewer Margin="6,4,4,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                    <StackPanel x:Name="TabStrip" Orientation="Horizontal" Spacing="3">
-                        <Button x:Name="TabAdd" Classes="tabAdd" Content="+" Margin="2,0,0,0"
-                                AutomationProperties.Name="Thêm tab"
-                                ToolTip.Tip="Tab mới (Ctrl+T)" Click="AddTab_Click"/>
+                <DockPanel LastChildFill="True">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" Margin="4,4,5,0">
+                        <Button Classes="tabAction" Content="Claude" AutomationProperties.Name="Mở Claude Code tại thư mục này"
+                                ToolTip.Tip="Mở Claude Code tại thư mục này" Click="Claude_Click"/>
+                        <Button Classes="tabAction" Content="Codex" AutomationProperties.Name="Mở Codex tại thư mục này"
+                                ToolTip.Tip="Mở Codex tại thư mục này" Click="Codex_Click"/>
+                        <Button Classes="tabAction" Content="Code" AutomationProperties.Name="Mở VS Code tại thư mục này"
+                                ToolTip.Tip="Mở VS Code tại thư mục này" Click="VSCode_Click"/>
+                        <Button Classes="tabAction copyPath" Content="&#xE8C8;" AutomationProperties.Name="Sao chép đường dẫn"
+                                ToolTip.Tip="Sao chép đường dẫn" Click="CopyPath_Click"/>
                     </StackPanel>
-                </ScrollViewer>
+                    <ScrollViewer Margin="6,4,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="TabStrip" Orientation="Horizontal" Spacing="3">
+                            <Button x:Name="TabAdd" Classes="tabAdd" Content="+" Margin="2,0,0,0"
+                                    AutomationProperties.Name="Thêm tab"
+                                    ToolTip.Tip="Tab mới (Ctrl+T)" Click="AddTab_Click"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
             </Border>
             <!-- Thanh điều hướng của panel -->
             <!-- Thanh điều hướng nối liền với tab đang chọn -->

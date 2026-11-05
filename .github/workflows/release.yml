@@ -53,9 +53,42 @@ jobs:
           path: QuadPane/dist/*.zip
           if-no-files-found: error
 
+  installer:
+    name: Build Windows installer
+    needs: build
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: QuadPane
+    env:
+      RELEASE_TAG: v0.0.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: QuadPane-win-x64
+          path: QuadPane/installer-input
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+      - name: Package installer
+        shell: pwsh
+        run: |
+          Expand-Archive -LiteralPath "installer-input/QuadPane-$env:RELEASE_TAG-win-x64.zip" -DestinationPath publish
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path -LiteralPath $iscc)) { throw 'Inno Setup compiler is missing.' }
+          & $iscc "/DAppVersion=$($env:RELEASE_TAG.Substring(1))" installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path -LiteralPath "dist/QuadPane-$env:RELEASE_TAG-win-x64-setup.exe")) { throw 'Installer is missing.' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QuadPane-installer
+          path: QuadPane/dist/*-setup.exe
+          if-no-files-found: error
+
   release:
     name: Publish GitHub Release
-    needs: build
+    needs: [build, installer]
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: v0.0.${{ github.run_number }}
@@ -68,14 +101,14 @@ jobs:
           path: dist
           merge-multiple: true
       - name: Create checksums
-        run: cd dist && sha256sum QuadPane-*.zip > SHA256SUMS.txt
+        run: cd dist && sha256sum QuadPane-*.zip QuadPane-*.exe > SHA256SUMS.txt
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" dist/QuadPane-*.zip dist/SHA256SUMS.txt --clobber
+            gh release upload "$RELEASE_TAG" dist/QuadPane-*.zip dist/QuadPane-*.exe dist/SHA256SUMS.txt --clobber
           else
-            gh release create "$RELEASE_TAG" dist/QuadPane-*.zip dist/SHA256SUMS.txt --target "$GITHUB_SHA" --generate-notes
+            gh release create "$RELEASE_TAG" dist/QuadPane-*.zip dist/QuadPane-*.exe dist/SHA256SUMS.txt --target "$GITHUB_SHA" --generate-notes
           fi

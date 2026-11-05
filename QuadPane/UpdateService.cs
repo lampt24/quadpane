@@ -36,8 +36,8 @@ internal static class UpdateService
     internal static bool Confirm(Window owner, string message) =>
         MessageBoxW(owner.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero, message, "Cập nhật QuadPane", 0x24) == 6;
 
-    internal static void ShowError(Window owner, string message) =>
-        MessageBoxW(owner.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero, message, "Cập nhật QuadPane", 0x10);
+    internal static void ShowError(Window owner, string message, string title = "Cập nhật QuadPane") =>
+        MessageBoxW(owner.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero, message, title, 0x10);
 
     internal static async Task InstallAsync(Release release)
     {
@@ -89,6 +89,9 @@ internal static class UpdateService
             if (!File.Exists(Path.Combine(stage, "QuadPane.exe")) ||
                 !File.Exists(Path.Combine(stage, "Assets", "EverythingSdk", "LICENSE.txt")))
                 throw new InvalidDataException("Gói cập nhật thiếu file ứng dụng.");
+            // Giữ trình gỡ cài đặt khi bản cài Inno Setup tự cập nhật bằng gói ZIP.
+            foreach (var file in Directory.EnumerateFiles(install, "unins*.*"))
+                File.Copy(file, Path.Combine(stage, Path.GetFileName(file)));
 
             File.Copy(Path.Combine(install, "Updater.ps1"), script);
             var start = new ProcessStartInfo("powershell.exe")

@@ -1,6 +1,9 @@
 using System.IO;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using QuadPane.Shell;
@@ -197,6 +200,65 @@ public partial class PaneView : UserControl
     }
 
     private void AddTab_Click(object? sender, RoutedEventArgs e) => OpenTab();
+    private void Claude_Click(object? sender, RoutedEventArgs e) => LaunchTool("claude");
+    private void Codex_Click(object? sender, RoutedEventArgs e) => LaunchTool("codex");
+    private void VSCode_Click(object? sender, RoutedEventArgs e) => LaunchTool("code", ".");
+
+    private string FolderPath()
+    {
+        var path = CurrentPath;
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+            throw new DirectoryNotFoundException("Tab này không trỏ tới thư mục trên ổ đĩa.");
+        return path;
+    }
+
+    private static string FindTool(string name)
+    {
+        foreach (var directory in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
+        {
+            var folder = directory.Trim().Trim('"');
+            if (!Path.IsPathFullyQualified(folder)) continue;
+            foreach (var extension in new[] { ".exe", ".cmd", ".bat" })
+            {
+                var file = Path.Combine(folder, name + extension);
+                if (File.Exists(file)) return Path.GetFullPath(file);
+            }
+        }
+        throw new FileNotFoundException($"Không tìm thấy lệnh {name} trong PATH. Hãy cài công cụ rồi mở lại QuadPane.");
+    }
+
+    private void LaunchTool(string name, string? arguments = null)
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo(FindTool(name))
+            {
+                Arguments = arguments ?? "",
+                WorkingDirectory = FolderPath(),
+                UseShellExecute = true,
+            }) ?? throw new InvalidOperationException($"Không thể mở {name}.");
+        }
+        catch (Exception ex) { ShowActionError(ex.Message); }
+    }
+
+    private async void CopyPath_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard
+                ?? throw new InvalidOperationException("Không thể truy cập clipboard.");
+            await clipboard.SetTextAsync(FolderPath());
+        }
+        catch (Exception ex) { ShowActionError(ex.Message); }
+    }
+
+    private void ShowActionError(string message) => MessageBoxW(
+        TopLevel.GetTopLevel(this)?.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero,
+        message, "QuadPane", 0x10);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "MessageBoxW")]
+    private static extern int MessageBoxW(IntPtr window, string text, string caption, uint options);
+
     private void Back_Click(object? sender, RoutedEventArgs e) => GoBack();
     private void Forward_Click(object? sender, RoutedEventArgs e) => GoForward();
     private void Up_Click(object? sender, RoutedEventArgs e) => GoUp();

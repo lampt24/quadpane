@@ -148,7 +148,7 @@
             <Setter Property="Foreground" Value="{DynamicResource TabSelectedTextBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
-        <Style Selector="Button.tabSelect, Button.tabClose, Button.tabAdd">
+        <Style Selector="Button.tabSelect, Button.tabClose, Button.tabAdd, Button.tabAction">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Height" Value="34"/>
@@ -177,6 +177,20 @@
             <Setter Property="CornerRadius" Value="4"/>
         </Style>
         <Style Selector="Button.tabClose:pointerover, Button.tabAdd:pointerover">
+            <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
+        </Style>
+        <Style Selector="Button.tabAction">
+            <Setter Property="Padding" Value="7,0"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="Button.tabAction.copyPath">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style Selector="Button.tabAction:pointerover">
             <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
         </Style>
 
