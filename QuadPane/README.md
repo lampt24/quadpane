@@ -26,7 +26,7 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 
 - Thanh tiêu đề tự vẽ (`ExtendClientAreaToDecorationsHint`) chứa logo, tên app, nút chọn bố cục 4/3/2/1 khung, nút chia đều và nút đổi theme.
 - Nền Mica trên Windows 11; các máy không hỗ trợ dùng màu nền thay thế.
-- Panel đang hoạt động có viền màu nhấn (accent).
+- Panel đang hoạt động có quầng sáng nhẹ quanh viền.
 - Mỗi panel có dải tab riêng. Tab mới mở tại `C:\`. Mỗi tab giữ Explorer Browser và lịch sử điều hướng riêng trong phiên chạy; các thư mục và tab đang chọn được khôi phục ở lần mở sau.
 - Mỗi tab có nút Pin để ghim thư mục đang xem làm home riêng. Nút Home chỉ bật khi tab đã ghim; nhấn để quay lại thư mục đó. Ghim được lưu cùng layout, và nhấn Pin lần nữa tại thư mục đã ghim để bỏ ghim.
 - Mở `QuadPane.exe "C:\duong-dan\thu-muc"` để chuyển tới thư mục. Có thể truyền đường dẫn file đang tồn tại để mở thư mục chứa file. Nếu thư mục đã ở một tab, QuadPane chọn tab đó; ưu tiên panel có số nhỏ hơn, rồi tab đang chọn trong panel. Nếu chưa có, QuadPane tạo tab tại panel 1. Lệnh gửi tới cửa sổ đang chạy và đưa cửa sổ lên trước.

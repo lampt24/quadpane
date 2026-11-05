@@ -22,6 +22,7 @@
                     <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#FFFFFF"/>
                     <SolidColorBrush x:Key="PaneHeaderBrush" Color="#F9F9F9"/>
                     <SolidColorBrush x:Key="PaneBorderBrush" Color="#E5E5E5"/>
+                    <BoxShadows x:Key="PaneActiveGlow">0 0 7 1 #660067C0</BoxShadows>
                     <SolidColorBrush x:Key="AccentBrush" Color="#0067C0"/>
                     <SolidColorBrush x:Key="AccentSoftBrush" Color="#260067C0"/>
                     <SolidColorBrush x:Key="MutedTextBrush" Color="#616161"/>
@@ -48,6 +49,7 @@
                     <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#202020"/>
                     <SolidColorBrush x:Key="PaneHeaderBrush" Color="#272727"/>
                     <SolidColorBrush x:Key="PaneBorderBrush" Color="#333333"/>
+                    <BoxShadows x:Key="PaneActiveGlow">0 0 7 1 #664CC2FF</BoxShadows>
                     <SolidColorBrush x:Key="AccentBrush" Color="#4CC2FF"/>
                     <SolidColorBrush x:Key="AccentSoftBrush" Color="#334CC2FF"/>
                     <SolidColorBrush x:Key="MutedTextBrush" Color="#A0A0A0"/>
@@ -132,14 +134,9 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="0"/>
             <Setter Property="ClipToBounds" Value="True"/>
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
-                </Transitions>
-            </Setter>
         </Style>
         <Style Selector="Border.pane.active">
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="BoxShadow" Value="{DynamicResource PaneActiveGlow}"/>
         </Style>
 
         <Style Selector="Border.tabItem">
