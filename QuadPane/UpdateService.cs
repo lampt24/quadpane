@@ -1,9 +1,8 @@
 using System.Diagnostics;
 using System.IO.Compression;
-using System.Net.Http.Json;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text.Json.Serialization;
 using Avalonia.Controls;
 
 namespace QuadPane;
@@ -11,15 +10,15 @@ namespace QuadPane;
 internal static class UpdateService
 {
     private const string Repo = "lampt24/quadpane";
-    private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromMinutes(10) };
+    private static readonly HttpClient Client = new(new HttpClientHandler
+    {
+        UseProxy = true,
+        DefaultProxyCredentials = CredentialCache.DefaultCredentials,
+        AllowAutoRedirect = true,
+    }) { Timeout = TimeSpan.FromMinutes(10) };
 
-    internal sealed record Asset(
-        [property: JsonPropertyName("name")] string Name,
-        [property: JsonPropertyName("browser_download_url")] string Url);
-
-    internal sealed record Release(
-        [property: JsonPropertyName("tag_name")] string Tag,
-        [property: JsonPropertyName("assets")] Asset[] Assets);
+    internal sealed record Asset(string Name, string Url);
+    internal sealed record Release(string Tag, Asset[] Assets);
 
     static UpdateService() => Client.DefaultRequestHeaders.UserAgent.ParseAdd("QuadPane-updater");
 
@@ -27,12 +26,26 @@ internal static class UpdateService
     {
         if (!OperatingSystem.IsWindows()) return null;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        var release = await Client.GetFromJsonAsync<Release>(
-            $"https://api.github.com/repos/{Repo}/releases/latest", timeout.Token);
-        if (release is null || !Version.TryParse(release.Tag.TrimStart('v'), out var latest)
-            || release.Tag != $"v{latest.ToString(3)}") return null;
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://github.com/{Repo}/releases/latest");
+        using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+        response.EnsureSuccessStatusCode();
+        var url = response.RequestMessage?.RequestUri;
+        var prefix = $"/{Repo}/releases/tag/";
+        if (url is null || url.Scheme != Uri.UriSchemeHttps || url.Host != "github.com" ||
+            !url.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal))
+            throw new InvalidDataException("GitHub không trả về tag release hợp lệ.");
+        var tag = url.AbsolutePath[prefix.Length..];
+        if (!tag.StartsWith('v') || !Version.TryParse(tag[1..], out var latest) ||
+            tag != $"v{latest.ToString(3)}")
+            throw new InvalidDataException("Tag release không hợp lệ.");
         var current = typeof(UpdateService).Assembly.GetName().Version ?? new Version(0, 0, 0);
-        return latest > current ? release : null;
+        if (latest <= current) return null;
+        var baseUrl = $"https://github.com/{Repo}/releases/download/{tag}/";
+        var assets = new[] { "win-x64", "win-x86", "win-arm64" }
+            .Select(rid => new Asset($"QuadPane-{tag}-{rid}.zip", $"{baseUrl}QuadPane-{tag}-{rid}.zip"))
+            .Append(new Asset("SHA256SUMS.txt", $"{baseUrl}SHA256SUMS.txt"))
+            .ToArray();
+        return new Release(tag, assets);
     }
 
     internal static bool Confirm(Window owner, string message) =>

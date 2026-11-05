@@ -86,6 +86,8 @@
                            TextTrimming="CharacterEllipsis"/>
                 <Button x:Name="UpdateButton" Grid.Column="1" Classes="update" IsVisible="False"
                         ToolTip.Tip="Tải và cài phiên bản mới" Click="UpdateButton_Click"/>
+                <Button x:Name="UpdateErrorButton" Grid.Column="1" Classes="update" IsVisible="False"
+                        Content="Lỗi kiểm tra cập nhật" Click="UpdateErrorButton_Click"/>
                 <TextBlock Grid.Column="2" FontSize="11" VerticalAlignment="Center"
                            Foreground="{DynamicResource StatusMutedTextBrush}"
                            Text="Ctrl+F  Tìm kiếm    ·    Ctrl+L  Địa chỉ"/>

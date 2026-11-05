@@ -10,7 +10,7 @@ namespace QuadPane;
 
 public partial class App : Application
 {
-    private static readonly string CrashLog = Path.Combine(Path.GetTempPath(), "QuadPane-crash.log");
+    internal static readonly string CrashLogPath = Path.Combine(Path.GetTempPath(), "QuadPane-crash.log");
     public static bool IsExiting { get; private set; }
 
     public override void Initialize()
@@ -48,7 +48,7 @@ public partial class App : Application
 
     public static void LogCrash(Exception? ex)
     {
-        try { File.AppendAllText(CrashLog, $"[{DateTime.Now:O}] {ex}\n\n"); } catch { }
+        try { File.AppendAllText(CrashLogPath, $"[{DateTime.Now:O}] {ex}\n\n"); } catch { }
     }
 
     public static void RequestExit() => IsExiting = true;

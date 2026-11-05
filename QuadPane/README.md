@@ -18,7 +18,7 @@ Workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml) ch�
 
 Mỗi release có bộ cài `QuadPane-v0.0.N-win-x64-setup.exe`, gói ZIP tự chứa .NET cho Windows x64, ARM64 và x86, cùng file `SHA256SUMS.txt`. Bộ cài đặt mặc định vào `%LocalAppData%\Programs\QuadPane` và tạo lối tắt trong Start Menu. Với gói ZIP, tải đúng kiến trúc, giải nén vào thư mục riêng rồi chạy `QuadPane.exe`; không cần cài .NET Runtime.
 
-Bản Release kiểm tra GitHub khi khởi động và mỗi 2 phút. Khi có version mới, nút cập nhật hiện trên thanh trạng thái; bấm nút để xác nhận tải và cài. Gói ZIP được kiểm tra SHA-256, cài sau khi app thoát rồi tự mở lại. Cần quyền ghi vào thư mục cài đặt. Bản cũ được giữ trong thư mục `.QuadPane-backup-*` cạnh thư mục ứng dụng để có thể khôi phục thủ công nếu cần. Bản Debug không tự cập nhật.
+Bản Release kiểm tra `github.com/.../releases/latest` khi khởi động và mỗi 2 phút, dùng proxy hệ thống, xác thực proxy Windows và chứng chỉ trong kho tin cậy của Windows. Khi có version mới, nút cập nhật hiện trên thanh trạng thái; bấm nút để xác nhận tải và cài. Nếu kiểm tra thất bại, nút lỗi hiện nguyên nhân trong tooltip và cho phép thử lại; lỗi cũng được ghi vào `%TEMP%\QuadPane-crash.log`. Gói ZIP được kiểm tra SHA-256, cài sau khi app thoát rồi tự mở lại. Cần quyền ghi vào thư mục cài đặt. Bản cũ được giữ trong thư mục `.QuadPane-backup-*` cạnh thư mục ứng dụng để có thể khôi phục thủ công nếu cần. Bản Debug không tự cập nhật.
 
 Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn trước khi push lên `main`. Thiếu file SDK sẽ làm workflow thất bại. GitHub Actions cần được bật cho repository và cho phép `GITHUB_TOKEN` tạo release (workflow đã khai báo `contents: write`).
 

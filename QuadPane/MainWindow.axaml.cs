@@ -111,13 +111,22 @@ public partial class MainWindow : Window
             if (App.IsExiting) return;
             _availableRelease = release;
             UpdateButton.IsVisible = release is not null;
+            UpdateErrorButton.IsVisible = false;
             if (release is not null) UpdateButton.Content = $"Cập nhật {release.Tag}";
         }
-        catch (HttpRequestException) { }
-        catch (TaskCanceledException) { }
-        catch (Exception ex) { App.LogCrash(ex); }
+        catch (Exception ex)
+        {
+            if (!UpdateErrorButton.IsVisible) App.LogCrash(ex);
+            if (_availableRelease is null)
+            {
+                UpdateErrorButton.IsVisible = true;
+                ToolTip.SetTip(UpdateErrorButton, $"{ex.Message}\nLog: {App.CrashLogPath}\nNhấn để thử lại");
+            }
+        }
         finally { _checkingUpdate = false; }
     }
+
+    private void UpdateErrorButton_Click(object? sender, RoutedEventArgs e) => _ = CheckForUpdatesAsync();
 
     private async void UpdateButton_Click(object? sender, RoutedEventArgs e)
     {
