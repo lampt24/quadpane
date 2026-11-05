@@ -28,6 +28,7 @@ public partial class App : Application
             var layout = LayoutStore.Load();
             ApplyThemeMode(layout.Theme);
             desktop.MainWindow = new MainWindow(layout);
+            if (Program.InitialFolder is { } folder) ((MainWindow)desktop.MainWindow).OpenFolder(folder);
             desktop.ShutdownRequested += (_, _) => IsExiting = true;
             Program.StartActivationServer();
         }
@@ -69,5 +70,11 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) desktop.Shutdown();
     }
 
-    internal static void ActivateExisting() => (Current as App)?.ShowMainWindow();
+    internal static void ActivateExisting(string? folder = null)
+    {
+        if (Current is not App app) return;
+        if (folder is not null && app.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: MainWindow window })
+            window.OpenFolder(folder);
+        app.ShowMainWindow();
+    }
 }

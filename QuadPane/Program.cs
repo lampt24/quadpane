@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace QuadPane;
 
@@ -11,11 +12,13 @@ internal static class Program
     private static readonly string PipeName = $"QuadPane-{Process.GetCurrentProcess().SessionId}";
     private static readonly CancellationTokenSource ActivationStop = new();
     private static bool _primaryInstance;
+    internal static string? InitialFolder { get; private set; }
 
     // ExplorerBrowser là COM và yêu cầu thread STA.
     [STAThread]
     public static void Main(string[] args)
     {
+        if (args is ["--check-git-status"]) { GitService.SelfCheckAsync().GetAwaiter().GetResult(); return; }
         AppDomain.CurrentDomain.UnhandledException += (_, e) => App.LogCrash(e.ExceptionObject as Exception);
         if (!OperatingSystem.IsWindows())
         {
@@ -23,10 +26,20 @@ internal static class Program
             return;
         }
 
+        if (args.Length > 0)
+        {
+            if (args.Length != 1 || !TryGetFolder(args[0], out var folder))
+            {
+                MessageBoxW(IntPtr.Zero, "Đường dẫn không phải thư mục hoặc file đang tồn tại.", "QuadPane", 0x10);
+                return;
+            }
+            InitialFolder = folder;
+        }
+
         using var mutex = new Mutex(true, @"Local\QuadPane", out var firstInstance);
         if (!firstInstance)
         {
-            ActivateRunningInstance();
+            ActivateRunningInstance(InitialFolder);
             return;
         }
         _primaryInstance = true;
@@ -53,8 +66,20 @@ internal static class Program
                     PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
                 await pipe.WaitForConnectionAsync(ActivationStop.Token);
                 var message = new byte[1];
-                if (await pipe.ReadAsync(message, ActivationStop.Token) == 1 && message[0] == 1)
-                    Dispatcher.UIThread.Post(App.ActivateExisting);
+                await pipe.ReadExactlyAsync(message, ActivationStop.Token);
+                string? folder = null;
+                if (message[0] == 2)
+                {
+                    var lengthBytes = new byte[4];
+                    await pipe.ReadExactlyAsync(lengthBytes, ActivationStop.Token);
+                    int length = BitConverter.ToInt32(lengthBytes);
+                    if (length <= 0 || length > 32768) continue;
+                    var pathBytes = new byte[length];
+                    await pipe.ReadExactlyAsync(pathBytes, ActivationStop.Token);
+                    if (!TryGetFolder(Encoding.UTF8.GetString(pathBytes), out folder)) continue;
+                }
+                else if (message[0] != 1) continue;
+                Dispatcher.UIThread.Post(() => App.ActivateExisting(folder));
             }
             catch (OperationCanceledException) { break; }
             catch (Exception ex)
@@ -65,7 +90,23 @@ internal static class Program
         }
     }
 
-    private static void ActivateRunningInstance()
+    private static bool TryGetFolder(string path, out string? folder)
+    {
+        folder = null;
+        try
+        {
+            string full = Path.GetFullPath(path);
+            if (Directory.Exists(full)) folder = full;
+            else if (File.Exists(full)) folder = Path.GetDirectoryName(full);
+            if (folder is not null) folder = Path.TrimEndingDirectorySeparator(folder);
+        }
+        catch (ArgumentException) { }
+        catch (NotSupportedException) { }
+        catch (PathTooLongException) { }
+        return folder is not null;
+    }
+
+    private static void ActivateRunningInstance(string? folder)
     {
         for (int attempt = 0; attempt < 10; attempt++)
         {
@@ -73,7 +114,14 @@ internal static class Program
             {
                 using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
                 pipe.Connect(500);
-                pipe.WriteByte(1);
+                if (folder is null) pipe.WriteByte(1);
+                else
+                {
+                    var bytes = Encoding.UTF8.GetBytes(folder);
+                    pipe.WriteByte(2);
+                    pipe.Write(BitConverter.GetBytes(bytes.Length));
+                    pipe.Write(bytes);
+                }
                 return;
             }
             catch (IOException) { Thread.Sleep(100); }

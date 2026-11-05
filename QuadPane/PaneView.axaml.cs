@@ -20,6 +20,7 @@ public partial class PaneView : UserControl
         public required TextBlock Label { get; init; }
         public required Button CloseButton { get; init; }
         public required string Id { get; init; }
+        public SearchResultsView? Search { get; init; }
         public string? Path { get; set; }
         public string? Display { get; set; }
     }
@@ -36,12 +37,53 @@ public partial class PaneView : UserControl
 
     private PaneTab CurrentTab => _tabs[_selectedIndex];
     private ExplorerHost Host => CurrentTab.Host;
-    public string? CurrentPath => Host.CurrentParsingName ?? CurrentTab.Path;
-    public string DisplayPath => AddressBox.Text ?? "";
+    public string? CurrentPath => CurrentTab.Search is null ? Host.CurrentParsingName ?? CurrentTab.Path : null;
+    public string DisplayPath => CurrentTab.Search is { } search ? $"Everything: {search.Query}" : AddressBox.Text ?? "";
+    public int ItemCount => CurrentTab.Search?.ResultCount ?? Host.ItemCount;
     public bool ShowTree => _showTree;
-    public string?[] TabPaths => _tabs.Select(t => t.Host.CurrentParsingName ?? t.Path).ToArray();
-    public string[] TabIds => _tabs.Select(t => t.Id).ToArray();
-    public int ActiveTabIndex => _selectedIndex;
+    public string?[] TabPaths => _tabs.Where(t => t.Search is null).Select(t => t.Host.CurrentParsingName ?? t.Path).ToArray();
+    public string[] TabIds => _tabs.Where(t => t.Search is null).Select(t => t.Id).ToArray();
+    public int ActiveTabIndex => Math.Clamp(_tabs.Take(_selectedIndex).Count(t => t.Search is null), 0, Math.Max(0, TabPaths.Length - 1));
+
+    public int FindTab(string path)
+    {
+        for (int offset = 0; offset < _tabs.Count; offset++)
+        {
+            int index = (_selectedIndex + offset) % _tabs.Count;
+            if (_tabs[index].Search is not null) continue;
+            var current = _tabs[index].Host.CurrentParsingName ?? _tabs[index].Path;
+            if (current is null) continue;
+            try
+            {
+                if (Path.IsPathFullyQualified(current) &&
+                    string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(current)), path,
+                        StringComparison.OrdinalIgnoreCase)) return index;
+            }
+            catch (ArgumentException) { }
+            catch (NotSupportedException) { }
+            catch (PathTooLongException) { }
+        }
+        return -1;
+    }
+
+    public void ActivateTab(int index) => SelectTab(index);
+    public void OpenTab(string path) => AddTab(path, $"QuadPane.Pane{Index}.Tab{Guid.NewGuid():N}", select: true);
+    public SearchResultsView OpenSearchTab()
+    {
+        var search = new SearchResultsView();
+        search.OpenFolder += path => OpenTab(path);
+        search.ResultsChanged += () => { if (IsCurrentSearch(search)) PathChanged?.Invoke(this); };
+        AddTab(_defaultPath, $"QuadPane.Pane{Index}.Tab{Guid.NewGuid():N}", select: true, search: search, focus: false);
+        return search;
+    }
+    public bool IsCurrentSearch(SearchResultsView search) => CurrentTab.Search == search;
+    public void Search(SearchResultsView view, string query)
+    {
+        var tab = _tabs.FirstOrDefault(t => t.Search == view);
+        if (tab is null) return;
+        tab.Label.Text = query.Length == 0 ? "Tìm kiếm" : $"Tìm: {query}";
+        view.Search(query);
+    }
 
     public PaneView() : this(0, [null], ["QuadPane.Pane0"], 0, false, LayoutStore.DefaultPath(0)) { }
     public PaneView(int index, string? initialPath, bool showTree)
@@ -70,7 +112,7 @@ public partial class PaneView : UserControl
         }
     }
 
-    private void AddTab(string? path, string id, bool select)
+    private void AddTab(string? path, string id, bool select, SearchResultsView? search = null, bool focus = true)
     {
         var host = new ExplorerHost
         {
@@ -82,7 +124,7 @@ public partial class PaneView : UserControl
         };
         var label = new TextBlock
         {
-            Text = GetTabTitle(path),
+            Text = search is null ? GetTabTitle(path) : "Tìm kiếm",
             TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis,
             MaxWidth = 130,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
@@ -98,7 +140,7 @@ public partial class PaneView : UserControl
         row.Children.Add(closeButton);
         var container = new Border { Child = row };
         container.Classes.Add("tabItem");
-        var tab = new PaneTab { Host = host, Container = container, Label = label, CloseButton = closeButton, Id = id, Path = path, Display = path };
+        var tab = new PaneTab { Host = host, Search = search, Container = container, Label = label, CloseButton = closeButton, Id = id, Path = path, Display = path };
         host.Navigated += (display, parsing) =>
         {
             if (!_tabs.Contains(tab)) return;
@@ -125,8 +167,9 @@ public partial class PaneView : UserControl
         _tabs.Add(tab);
         TabStrip.Children.Insert(TabStrip.Children.Count - 1, container);
         HostLayer.Children.Add(host);
+        if (search is not null) HostLayer.Children.Add(search);
         UpdateCloseButtons();
-        if (select) SelectTab(_tabs.Count - 1);
+        if (select) SelectTab(_tabs.Count - 1, focus);
     }
 
     private void UpdateCloseButtons()
@@ -150,9 +193,11 @@ public partial class PaneView : UserControl
         for (int i = 0; i < _tabs.Count; i++)
         {
             bool selected = i == index;
-            _tabs[i].Host.IsVisible = selected;
+            _tabs[i].Host.IsVisible = selected && _tabs[i].Search is null;
+            if (_tabs[i].Search is { } search) search.IsVisible = selected;
             _tabs[i].Container.Classes.Set("selected", selected);
         }
+        NavigationBar.IsVisible = CurrentTab.Search is null;
         AddressBox.Text = CurrentTab.Display ?? "";
         AddressBox.Classes.Remove("error");
         Activated?.Invoke(this);
@@ -167,14 +212,27 @@ public partial class PaneView : UserControl
         if (index < 0) return;
         if (_tabs.Count == 1)
         {
+            if (tab.Search is not null)
+            {
+                AddTab(_defaultPath, $"QuadPane.Pane{Index}.Tab{Guid.NewGuid():N}", select: false);
+                CloseTab(tab);
+                return;
+            }
             if (!tab.Host.Navigate(_defaultPath))
                 tab.Host.Navigate("::{20D04FE0-3AEA-1069-A2D8-08002B30309D}");
             return;
         }
+        if (tab.Search is null && _tabs.Count(t => t.Search is null) == 1)
+            AddTab(_defaultPath, $"QuadPane.Pane{Index}.Tab{Guid.NewGuid():N}", select: false);
         bool wasSelected = index == _selectedIndex;
         _tabs.RemoveAt(index);
         TabStrip.Children.Remove(tab.Container);
         HostLayer.Children.Remove(tab.Host);
+        if (tab.Search is { } search)
+        {
+            search.Stop();
+            HostLayer.Children.Remove(search);
+        }
         UpdateCloseButtons();
         if (index < _selectedIndex) _selectedIndex--;
         if (wasSelected) SelectTab(Math.Min(index, _tabs.Count - 1));
@@ -189,12 +247,26 @@ public partial class PaneView : UserControl
     public void GoBack() => Host.GoBack();
     public void GoForward() => Host.GoForward();
     public void GoUp() => Host.GoUp();
-    public void RefreshView() => Host.RefreshView();
-    public void FocusView() => Host.FocusView();
-    public bool Navigate(string path) => Host.Navigate(path);
+    public void RefreshView()
+    {
+        if (CurrentTab.Search is { } search) search.Search(search.Query);
+        else Host.RefreshView();
+    }
+    public void FocusView()
+    {
+        if (CurrentTab.Search is { } search) search.FocusResults();
+        else Host.FocusView();
+    }
+    public bool Navigate(string path)
+    {
+        if (CurrentTab.Search is null) return Host.Navigate(path);
+        OpenTab(path);
+        return true;
+    }
 
     public void FocusAddress()
     {
+        if (CurrentTab.Search is not null) OpenTab();
         AddressBox.Focus();
         AddressBox.SelectAll();
     }
@@ -291,7 +363,9 @@ public partial class PaneView : UserControl
         {
             var clipboard = TopLevel.GetTopLevel(this)?.Clipboard
                 ?? throw new InvalidOperationException("Không thể truy cập clipboard.");
-            var paths = Host.SelectedPaths();
+            var paths = CurrentTab.Search is { } search
+                ? search.SelectedPath is { } selected ? new[] { selected } : []
+                : Host.SelectedPaths();
             await clipboard.SetTextAsync(paths.Count > 0 ? string.Join(Environment.NewLine, paths) : FolderPath());
         }
         catch (Exception ex) { ShowActionError(ex.Message); }

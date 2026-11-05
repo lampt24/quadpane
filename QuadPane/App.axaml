@@ -208,6 +208,27 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
+        <Style Selector="Button.gitAction">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource StatusTextBrush}"/>
+        </Style>
+        <Style Selector="Button.gitAction:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+        </Style>
+        <Style Selector="Path.gitIcon">
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="Stroke" Value="{DynamicResource StatusTextBrush}"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+        </Style>
+
         <!-- Ô địa chỉ -->
         <Style Selector="TextBox.address">
             <Setter Property="CornerRadius" Value="6"/>

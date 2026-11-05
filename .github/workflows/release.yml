@@ -42,6 +42,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path -LiteralPath 'publish/QuadPane.exe')) { throw 'Published executable is missing.' }
           if (-not (Test-Path -LiteralPath 'publish/Assets/EverythingSdk/LICENSE.txt')) { throw 'Everything SDK license is missing from the package.' }
+      - name: Smoke test Git status
+        if: matrix.rid == 'win-x64'
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath (Resolve-Path 'publish/QuadPane.exe') -ArgumentList '--check-git-status' -WorkingDirectory (Get-Location).Path -PassThru -Wait
+          if ($process.ExitCode -ne 0) { throw "Git status smoke test failed: $($process.ExitCode)" }
       - name: Package
         shell: pwsh
         run: |

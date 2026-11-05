@@ -35,7 +35,7 @@
             </Border>
             <!-- Thanh điều hướng của panel -->
             <!-- Thanh điều hướng nối liền với tab đang chọn -->
-            <Border DockPanel.Dock="Top" Background="{DynamicResource PaneHeaderBrush}"
+            <Border x:Name="NavigationBar" DockPanel.Dock="Top" Background="{DynamicResource PaneHeaderBrush}"
                     BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="0,0,0,1"
                     Padding="6,5">
                 <DockPanel>

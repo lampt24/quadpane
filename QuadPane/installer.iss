@@ -32,5 +32,7 @@ Filename: "{app}\QuadPane.exe"; Description: "Mở QuadPane"; Flags: nowait post
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
+  begin
     RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'QuadPane');
+  end;
 end;

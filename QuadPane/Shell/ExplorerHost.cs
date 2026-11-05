@@ -38,6 +38,25 @@ public sealed class ExplorerHost : NativeControlHost
 
     public string? CurrentParsingName => GetName(_currentPidl, SIGDN_DESKTOPABSOLUTEPARSING);
 
+    public int ItemCount
+    {
+        get
+        {
+            if (_browser is null) return 0;
+            var viewId = IID_IFolderView;
+            if (_browser.GetCurrentView(ref viewId, out var pointer) != 0 || pointer == IntPtr.Zero) return 0;
+            try
+            {
+                var view = (IFolderView)Marshal.GetObjectForIUnknown(pointer);
+                try { return view.ItemCount(2, out int count) == 0 ? count : 0; }
+                finally { Marshal.ReleaseComObject(view); }
+            }
+            catch (COMException) { return 0; }
+            catch (InvalidCastException) { return 0; }
+            finally { Marshal.Release(pointer); }
+        }
+    }
+
     public bool ShowTree
     {
         get => _showTree;

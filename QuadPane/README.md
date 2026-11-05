@@ -28,8 +28,11 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 - Nền Mica trên Windows 11; các máy không hỗ trợ dùng màu nền thay thế.
 - Panel đang hoạt động có viền màu nhấn (accent).
 - Mỗi panel có dải tab riêng. Tab mới mở tại `C:\`. Mỗi tab giữ Explorer Browser và lịch sử điều hướng riêng trong phiên chạy; các thư mục và tab đang chọn được khôi phục ở lần mở sau.
+- Mở `QuadPane.exe "C:\duong-dan\thu-muc"` để chuyển tới thư mục. Có thể truyền đường dẫn file đang tồn tại để mở thư mục chứa file. Nếu thư mục đã ở một tab, QuadPane chọn tab đó; ưu tiên panel có số nhỏ hơn, rồi tab đang chọn trong panel. Nếu chưa có, QuadPane tạo tab tại panel 1. Lệnh gửi tới cửa sổ đang chạy và đưa cửa sổ lên trước.
 - Nút đóng cửa sổ ẩn QuadPane xuống khay hệ thống. Nhấp icon khay hoặc mở QuadPane lần nữa để hiện cửa sổ cũ; chọn **Thoát** trong menu icon khay để đóng hẳn app.
-- Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn mục đang chọn (nhiều mục: mỗi đường dẫn một dòng; không chọn: thư mục đang mở). Claude/Codex mở trong Windows Terminal nếu có, nếu không dùng PowerShell. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt trên thanh tiêu đề có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
+- Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn mục đang chọn (nhiều mục: mỗi đường dẫn một dòng; không chọn: thư mục đang mở). Claude/Codex mở trong Windows Terminal nếu có, nếu không dùng PowerShell. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt ở góc trái thanh trạng thái có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
+- Thanh trạng thái hiển thị số mục trong tab; khi thư mục thuộc một Git repository và có `git` trong PATH, thanh hiện branch, số file đã stage/chưa stage, cùng nút Fetch, Pull (`--ff-only`) và Push. Không tự tạo merge commit.
+- Ô Everything nằm trên thanh tiêu đề. Nhập từ khóa để mở tab kết quả tại panel đang chọn; kết quả có cột tên, đường dẫn và loại. Enter/↓ chuyển tới danh sách; trong danh sách, Enter hoặc nhấp đúp mở mục. Tab tìm kiếm chỉ tồn tại trong phiên chạy.
 - Theme đổi theo vòng: **Theo hệ thống → Sáng → Tối**. Phần Explorer nhúng (danh sách file, header cột, cây thư mục, menu chuột phải) và khung cửa sổ đổi màu theo.
 
 ## Logo & icon
@@ -71,7 +74,7 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 - `Ctrl+T` / `Ctrl+W`: mở / đóng tab trong panel đang hoạt động
 - `Ctrl+Tab` / `Ctrl+Shift+Tab`: chuyển tab kế tiếp / trước đó
 - `Ctrl+L` / `Alt+D`: ô địa chỉ
-- `Ctrl+F`: mở cửa sổ tìm kiếm Everything (hoặc nhấn biểu tượng kính lúp trên thanh tiêu đề). Nhập từ khóa để thấy tối đa 200 kết quả đầu tiên; Enter/nhấp đúp mở file bằng ứng dụng mặc định hoặc mở thư mục trong panel đang hoạt động.
+- `Ctrl+F`: chuyển tới ô tìm kiếm Everything trên thanh tiêu đề. Nhập từ khóa để thấy tối đa 200 kết quả đầu tiên trong tab mới tại panel đang chọn.
 - `Alt+←/→/↑`: lùi / tiến / lên thư mục cha
 - `F5`: làm mới
 

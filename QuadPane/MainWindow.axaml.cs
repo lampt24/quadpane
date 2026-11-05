@@ -19,8 +19,13 @@ public partial class MainWindow : Window
     private readonly LayoutData _layout;
     private PaneView _active;
     private LayoutMode _mode;
-    private SearchWindow? _searchWindow;
+    private PaneView? _searchPane;
+    private SearchResultsView? _searchView;
     private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromMinutes(2) };
+    private readonly DispatcherTimer _gitTimer = new() { Interval = TimeSpan.FromSeconds(20) };
+    private CancellationTokenSource? _gitRefresh;
+    private string? _gitFolder;
+    private bool _gitBusy;
     private UpdateService.Release? _availableRelease;
     private bool _checkingUpdate;
     private bool _installingUpdate;
@@ -81,6 +86,7 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
         ActualThemeVariantChanged += (_, _) => ApplyThemeToNative();
         _updateTimer.Tick += (_, _) => _ = CheckForUpdatesAsync();
+        _gitTimer.Tick += (_, _) => UpdateStatus();
         Opened += OnOpened;
         Closing += OnClosing;
     }
@@ -99,6 +105,7 @@ public partial class MainWindow : Window
         _updateTimer.Start();
         _ = CheckForUpdatesAsync();
 #endif
+        _gitTimer.Start();
     }
 
     private async Task CheckForUpdatesAsync()
@@ -165,12 +172,96 @@ public partial class MainWindow : Window
         if (changed && _mode is LayoutMode.Dual or LayoutMode.Single) ApplyLayout();
     }
 
-    private void UpdateStatus()
+    public void OpenFolder(string path)
     {
-        StatusText.Text = _active.DisplayPath;
+        foreach (var pane in _panes)
+        {
+            int tab = pane.FindTab(path);
+            if (tab < 0) continue;
+            if (_mode == LayoutMode.Triple && pane.Index == 3)
+            {
+                _mode = LayoutMode.Quad;
+                ApplyLayout();
+            }
+            pane.ActivateTab(tab);
+            SetActive(pane);
+            return;
+        }
+        _panes[0].OpenTab(path);
+        SetActive(_panes[0]);
     }
 
-    private void Search_Click(object? sender, RoutedEventArgs e) => OpenSearch();
+    private void UpdateStatus()
+    {
+        if (!_installingUpdate && !_gitBusy) StatusText.Text = $"{_active.ItemCount:N0} mục";
+        ToolTip.SetTip(StatusText, _active.DisplayPath);
+        RefreshGit();
+    }
+
+    private async void RefreshGit()
+    {
+        _gitRefresh?.Cancel();
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+        _gitRefresh = cancellation;
+        var folder = _active.CurrentPath;
+        if (folder is null || !Directory.Exists(folder))
+        {
+            GitControls.IsVisible = false;
+            _gitFolder = null;
+            _gitRefresh = null;
+            return;
+        }
+        try
+        {
+            var info = await GitService.StatusAsync(folder, cancellation.Token);
+            if (cancellation.IsCancellationRequested) return;
+            _gitFolder = folder;
+            GitCountText.Text = $"{info.Staged} / {info.Unstaged}";
+            GitBranchText.Text = info.Branch;
+            ToolTip.SetTip(GitBranchText, info.Branch);
+            GitControls.IsVisible = true;
+        }
+        catch (Exception)
+        {
+            if (cancellation.IsCancellationRequested) return;
+            _gitFolder = null;
+            GitControls.IsVisible = false;
+        }
+        finally
+        {
+            if (_gitRefresh == cancellation) _gitRefresh = null;
+        }
+    }
+
+    private void GitFetch_Click(object? sender, RoutedEventArgs e) => _ = RunGitActionAsync("fetch");
+    private void GitPull_Click(object? sender, RoutedEventArgs e) => _ = RunGitActionAsync("pull");
+    private void GitPush_Click(object? sender, RoutedEventArgs e) => _ = RunGitActionAsync("push");
+
+    private async Task RunGitActionAsync(string action)
+    {
+        if (_gitBusy || _gitFolder is not { } folder) return;
+        _gitBusy = true;
+        GitControls.IsEnabled = false;
+        StatusText.Text = $"Git {action}...";
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            var args = action == "pull" ? new[] { "pull", "--ff-only" } : [action];
+            await GitService.RunAsync(folder, args, timeout.Token);
+            StatusText.Text = $"Git {action} xong";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Git {action} lỗi";
+            UpdateService.ShowError(this, ex.Message, $"Git {action}");
+        }
+        finally
+        {
+            _gitBusy = false;
+            GitControls.IsEnabled = true;
+            RefreshGit();
+        }
+    }
 
     private void StartupCheck_Changed(object? sender, RoutedEventArgs e)
     {
@@ -201,16 +292,43 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OpenSearch()
+    private void FocusSearch()
     {
-        if (_searchWindow is { IsVisible: true })
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
+    private void SearchBox_TextChanged(object? sender, TextChangedEventArgs e)
+    {
+        var query = SearchBox.Text?.Trim() ?? "";
+        if (query.Length == 0)
         {
-            _searchWindow.FocusSearch();
+            if (_searchPane == _active && _searchView is not null && _active.IsCurrentSearch(_searchView))
+                _active.Search(_searchView, "");
             return;
         }
-        _searchWindow = new SearchWindow(path => _active.Navigate(path));
-        _searchWindow.Closed += (_, _) => _searchWindow = null;
-        _searchWindow.Show(this);
+        if (_searchPane != _active || _searchView is null || !_active.IsCurrentSearch(_searchView))
+        {
+            _searchPane = _active;
+            _searchView = _active.OpenSearchTab();
+        }
+        _active.Search(_searchView, query);
+        UpdateStatus();
+    }
+
+    private void SearchBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if ((e.Key is Key.Enter or Key.Down) && _searchPane == _active &&
+            _searchView is not null && _active.IsCurrentSearch(_searchView))
+        {
+            _searchView.FocusResults();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            SearchBox.Text = "";
+            e.Handled = true;
+        }
     }
 
     // ---- Bố cục ----
@@ -374,7 +492,9 @@ public partial class MainWindow : Window
     {
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         // Bấm vào nút (Button/ToggleButton) thì không kéo cửa sổ
-        if (e.Source is Visual v && v.FindAncestorOfType<Button>(includeSelf: true) != null) return;
+        if (e.Source is Visual v &&
+            (v.FindAncestorOfType<Button>(includeSelf: true) != null ||
+             v.FindAncestorOfType<TextBox>(includeSelf: true) != null)) return;
 
         if (e.ClickCount == 2)
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
@@ -486,7 +606,7 @@ public partial class MainWindow : Window
                 pane.FocusView();
                 break;
             case Shortcut.Address: _active.FocusAddress(); break;
-            case Shortcut.Search: OpenSearch(); break;
+            case Shortcut.Search: FocusSearch(); break;
             case Shortcut.Back: _active.GoBack(); break;
             case Shortcut.Forward: _active.GoForward(); break;
             case Shortcut.Up: _active.GoUp(); break;
@@ -522,6 +642,8 @@ public partial class MainWindow : Window
             return;
         }
         _updateTimer.Stop();
+        _gitTimer.Stop();
+        _gitRefresh?.Cancel();
         if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
         if (UsesBothSplitters(_mode)) RememberRatios();
 

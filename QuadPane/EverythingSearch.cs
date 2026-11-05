@@ -3,7 +3,11 @@ using System.Text;
 
 namespace QuadPane;
 
-public sealed record SearchResult(string Name, string Directory, string FullPath, bool IsFolder);
+public sealed record SearchResult(string Name, string Directory, string FullPath, bool IsFolder)
+{
+    public string Kind => IsFolder ? "Thư mục" : "Tệp";
+    public string Icon => IsFolder ? "\uE8B7" : "\uE8A5";
+}
 public sealed record SearchResponse(IReadOnlyList<SearchResult> Results, uint Total);
 
 /// <summary>Gọi Everything SDK qua IPC. Everything phải đang chạy; DLL đi kèm chỉ là client.</summary>
