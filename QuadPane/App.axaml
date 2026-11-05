@@ -182,8 +182,15 @@
         <Style Selector="Button.tabClose, Button.tabAdd">
             <Setter Property="Width" Value="34"/>
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="FontSize" Value="17"/>
             <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="Button.tabClose Path, Button.tabAdd Path">
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="Stroke" Value="{DynamicResource TabSelectedTextBrush}"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+            <Setter Property="StrokeLineCap" Value="Round"/>
         </Style>
         <Style Selector="Button.tabClose:pointerover, Button.tabAdd:pointerover">
             <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
@@ -216,8 +223,8 @@
         </Style>
 
         <Style Selector="Button.gitAction">
-            <Setter Property="Width" Value="24"/>
-            <Setter Property="Height" Value="24"/>
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="CornerRadius" Value="4"/>
@@ -229,11 +236,11 @@
             <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
         </Style>
         <Style Selector="Path.gitIcon">
-            <Setter Property="Width" Value="16"/>
-            <Setter Property="Height" Value="16"/>
+            <Setter Property="Width" Value="13"/>
+            <Setter Property="Height" Value="13"/>
             <Setter Property="Stretch" Value="Uniform"/>
             <Setter Property="Stroke" Value="{DynamicResource StatusTextBrush}"/>
-            <Setter Property="StrokeThickness" Value="1.8"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
             <Setter Property="StrokeLineCap" Value="Round"/>
             <Setter Property="StrokeJoin" Value="Round"/>
         </Style>

@@ -143,7 +143,13 @@ public partial class PaneView : UserControl
         label.Classes.Add("tabTitle");
         var selectButton = new Button { Content = label };
         selectButton.Classes.Add("tabSelect");
-        var closeButton = new Button { Content = "×" };
+        var closeButton = new Button
+        {
+            Content = new Avalonia.Controls.Shapes.Path
+            {
+                Data = Avalonia.Media.Geometry.Parse("M2 2L10 10 M10 2L2 10"),
+            },
+        };
         closeButton.Classes.Add("tabClose");
         ToolTip.SetTip(closeButton, "Đóng tab (Ctrl+W)");
         var row = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 1 };
