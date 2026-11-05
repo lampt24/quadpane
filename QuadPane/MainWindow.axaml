@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="QuadPane.MainWindow"
         Title="QuadPane"
+        FontFamily="Segoe UI Variable, Segoe UI"
         Icon="/Assets/QuadPane.ico"
         Width="1280" Height="800" MinWidth="760" MinHeight="420"
         ExtendClientAreaToDecorationsHint="True"
@@ -10,7 +11,7 @@
         TransparencyBackgroundFallback="{DynamicResource WindowFallbackBrush}"
         Background="Transparent">
 
-    <Grid RowDefinitions="40,*,30" Background="{DynamicResource WindowFallbackBrush}">
+    <Grid RowDefinitions="40,*,Auto" Background="{DynamicResource WindowFallbackBrush}">
 
         <!-- ===== Thanh tiêu đề tự vẽ (nút đóng/thu nhỏ của hệ thống ở góc phải) ===== -->
         <Grid x:Name="TitleBar" Grid.Row="0" Background="{DynamicResource TitleSurfaceBrush}"
@@ -30,7 +31,8 @@
                            Foreground="{DynamicResource StatusMutedTextBrush}"/>
             </StackPanel>
 
-            <TextBox x:Name="SearchBox" Grid.Column="1" MaxWidth="190" MinWidth="100" Margin="8,4,12,4"
+            <TextBox x:Name="SearchBox" Classes="titleSearch" Grid.Column="1" MaxWidth="260" MinWidth="130" Margin="8,4,12,4"
+                     FocusAdorner="{x:Null}"
                      HorizontalAlignment="Stretch" VerticalAlignment="Center"
                      PlaceholderText="Tìm với Everything..." AutomationProperties.Name="Tìm với Everything"
                      TextChanged="SearchBox_TextChanged" KeyDown="SearchBox_KeyDown"/>
@@ -70,9 +72,9 @@
         </Grid>
 
         <!-- ===== Thanh trạng thái ===== -->
-        <Border Grid.Row="2" Background="{DynamicResource StatusSurfaceBrush}"
+        <Border Grid.Row="2" MinHeight="30" Background="{DynamicResource StatusSurfaceBrush}"
                 BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,1,0,0">
-            <Grid Margin="4,0,10,0" ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+            <Grid Margin="4,0,10,0" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="8">
                 <Button Grid.Column="0" Classes="icon" Content="&#xE713;" Height="26" Width="26" Focusable="True"
                         ToolTip.Tip="Cài đặt" AutomationProperties.Name="Cài đặt">
                     <Button.Flyout>
@@ -87,37 +89,36 @@
                 </Button>
                 <TextBlock x:Name="StatusText" Grid.Column="1" FontSize="11.5" FontWeight="Medium"
                            Foreground="{DynamicResource StatusTextBrush}" VerticalAlignment="Center"/>
-                <Button x:Name="UpdateButton" Grid.Column="3" Classes="update" IsVisible="False"
+                <Button x:Name="UpdateButton" Grid.Column="2" Classes="update" IsVisible="False"
                         ToolTip.Tip="Tải và cài phiên bản mới" Click="UpdateButton_Click"/>
-                <Button x:Name="UpdateErrorButton" Grid.Column="4" Classes="update" IsVisible="False"
+                <Button x:Name="UpdateErrorButton" Grid.Column="3" Classes="update" IsVisible="False"
                         Content="Lỗi kiểm tra cập nhật" Click="UpdateErrorButton_Click"/>
-                <StackPanel x:Name="GitControls" Grid.Column="5" Orientation="Horizontal"
-                            Spacing="5" VerticalAlignment="Center" IsVisible="False">
-                    <Path Width="14" Height="14" VerticalAlignment="Center" Stretch="Uniform"
-                          Stroke="{DynamicResource StatusMutedTextBrush}" StrokeThickness="1.5"
-                          Data="M7,1 L13,7 L7,13 L1,7 Z"/>
-                    <TextBlock x:Name="GitCountText" VerticalAlignment="Center" FontSize="11"
+                <Grid x:Name="GitControls" Grid.Column="4" ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto"
+                      ColumnSpacing="6" Margin="12,2,0,2" VerticalAlignment="Center" IsVisible="False">
+                    <Path Grid.Column="0" Classes="gitIcon" Width="15" Height="15"
+                          Stroke="{DynamicResource StatusMutedTextBrush}"
+                          Data="M2 12h6 M16 12h6 M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8"/>
+                    <TextBlock x:Name="GitCountText" Grid.Column="1" VerticalAlignment="Center" FontSize="11"
                                ToolTip.Tip="Đã stage / chưa stage"
                                Foreground="{DynamicResource StatusTextBrush}"/>
-                    <Path Width="14" Height="14" Margin="8,0,0,0" VerticalAlignment="Center" Stretch="Uniform"
-                          Stroke="{DynamicResource StatusMutedTextBrush}" StrokeThickness="1.5"
-                          Data="M3,1 L3,9 C3,11 5,12 7,12 L12,12 M3,4 L6,4 M12,12 L9,9 M12,12 L9,15"/>
-                    <TextBlock x:Name="GitBranchText" VerticalAlignment="Center" FontSize="11"
-                               MaxWidth="140" TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource StatusTextBrush}"/>
-                    <Button Classes="gitAction" ToolTip.Tip="Git fetch"
+                    <Path Grid.Column="2" Classes="gitIcon" Width="15" Height="15" Margin="7,0,0,0"
+                          Stroke="{DynamicResource StatusMutedTextBrush}"
+                          Data="M6 6v12 M6 6a9 9 0 0 0 9 9 M6 0a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M6 18a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M18 12a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/>
+                    <TextBlock x:Name="GitBranchText" Grid.Column="3" VerticalAlignment="Center" FontSize="11"
+                               TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
+                    <Button Grid.Column="4" Classes="gitAction" ToolTip.Tip="Git fetch"
                             AutomationProperties.Name="Git fetch" Click="GitFetch_Click">
-                        <Path Classes="gitIcon" Data="M2,5 C5,1 11,1 14,5 M14,5 L14,2 M14,5 L11,5 M14,11 C11,15 5,15 2,11 M2,11 L2,14 M2,11 L5,11"/>
+                        <Path Classes="gitIcon" Data="M20 11a8 8 0 0 0-14-5 M4 4v5h5 M4 13a8 8 0 0 0 14 5 M20 20v-5h-5"/>
                     </Button>
-                    <Button Classes="gitAction" ToolTip.Tip="Git pull (fast-forward only)"
+                    <Button Grid.Column="5" Classes="gitAction" ToolTip.Tip="Git pull (fast-forward only)"
                             AutomationProperties.Name="Git pull" Click="GitPull_Click">
-                        <Path Classes="gitIcon" Data="M8,2 L8,11 M5,8 L8,11 L11,8 M2,12 L2,14 L14,14 L14,12"/>
+                        <Path Classes="gitIcon" Data="M12 3v12 M7 10l5 5 5-5 M4 18v3h16v-3"/>
                     </Button>
-                    <Button Classes="gitAction" ToolTip.Tip="Git push"
+                    <Button Grid.Column="6" Classes="gitAction" ToolTip.Tip="Git push"
                             AutomationProperties.Name="Git push" Click="GitPush_Click">
-                        <Path Classes="gitIcon" Data="M8,12 L8,3 M5,6 L8,3 L11,6 M2,12 L2,14 L14,14 L14,12"/>
+                        <Path Classes="gitIcon" Data="M12 15V3 M7 8l5-5 5 5 M4 18v3h16v-3"/>
                     </Button>
-                </StackPanel>
+                </Grid>
             </Grid>
         </Border>
     </Grid>

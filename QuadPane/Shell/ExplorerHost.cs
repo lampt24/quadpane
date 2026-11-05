@@ -26,6 +26,7 @@ public sealed class ExplorerHost : NativeControlHost
     private IntPtr _currentPidl;
     private bool _showTree;
     private bool _dark;
+    private int _itemCount;
 
     /// <summary>Thư mục mở đầu tiên (parsing name). Đặt trước khi control được nạp.</summary>
     public string? InitialPath { get; set; }
@@ -35,26 +36,27 @@ public sealed class ExplorerHost : NativeControlHost
 
     /// <summary>Phát ra khi đã điều hướng xong: (tên hiển thị để sửa, parsing name để lưu).</summary>
     public event Action<string, string>? Navigated;
+    public event Action? ItemCountChanged;
 
     public string? CurrentParsingName => GetName(_currentPidl, SIGDN_DESKTOPABSOLUTEPARSING);
 
-    public int ItemCount
+    public int ItemCount => _itemCount;
+
+    private void UpdateItemCount()
     {
-        get
+        if (_browser is null) return;
+        var viewId = IID_IFolderView;
+        if (_browser.GetCurrentView(ref viewId, out var pointer) != 0 || pointer == IntPtr.Zero) return;
+        try
         {
-            if (_browser is null) return 0;
-            var viewId = IID_IFolderView;
-            if (_browser.GetCurrentView(ref viewId, out var pointer) != 0 || pointer == IntPtr.Zero) return 0;
-            try
-            {
-                var view = (IFolderView)Marshal.GetObjectForIUnknown(pointer);
-                try { return view.ItemCount(2, out int count) == 0 ? count : 0; }
-                finally { Marshal.ReleaseComObject(view); }
-            }
-            catch (COMException) { return 0; }
-            catch (InvalidCastException) { return 0; }
-            finally { Marshal.Release(pointer); }
+            var view = (IFolderView)Marshal.GetObjectForIUnknown(pointer);
+            try { if (view.ItemCount(2, out int count) == 0) _itemCount = count; }
+            finally { Marshal.ReleaseComObject(view); }
         }
+        catch (COMException) { }
+        catch (InvalidCastException) { }
+        finally { Marshal.Release(pointer); }
+        ItemCountChanged?.Invoke();
     }
 
     public bool ShowTree
@@ -201,7 +203,11 @@ public sealed class ExplorerHost : NativeControlHost
     public void GoForward() => _browser?.BrowseToIDList(IntPtr.Zero, SBSP_NAVIGATEFORWARD);
     public void GoUp() => _browser?.BrowseToIDList(IntPtr.Zero, SBSP_PARENT);
 
-    public void RefreshView() => WithShellView(v => v.Refresh());
+    public void RefreshView()
+    {
+        WithShellView(v => v.Refresh());
+        Dispatcher.UIThread.Post(UpdateItemCount, DispatcherPriority.Background);
+    }
 
     /// <summary>Đường dẫn file/thư mục đang chọn; rỗng khi không chọn gì.</summary>
     public IReadOnlyList<string> SelectedPaths()
@@ -297,12 +303,14 @@ public sealed class ExplorerHost : NativeControlHost
 
     private void OnNavigationComplete(IntPtr pidl)
     {
+        _itemCount = 0;
         if (_currentPidl != IntPtr.Zero) ILFree(_currentPidl);
         _currentPidl = ILClone(pidl);
         string display = GetName(pidl, SIGDN_DESKTOPABSOLUTEEDITING)
                          ?? GetName(pidl, SIGDN_NORMALDISPLAY) ?? "";
         string parsing = GetName(pidl, SIGDN_DESKTOPABSOLUTEPARSING) ?? display;
         Navigated?.Invoke(display, parsing);
+        Dispatcher.UIThread.Post(UpdateItemCount, DispatcherPriority.Background);
         Dispatcher.UIThread.Post(ApplyTheme, DispatcherPriority.Background);
     }
 

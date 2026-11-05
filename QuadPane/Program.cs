@@ -19,6 +19,7 @@ internal static class Program
     public static void Main(string[] args)
     {
         if (args is ["--check-git-status"]) { GitService.SelfCheckAsync().GetAwaiter().GetResult(); return; }
+        if (args is ["--check-search-result"]) { EverythingSearch.SelfCheck(); return; }
         AppDomain.CurrentDomain.UnhandledException += (_, e) => App.LogCrash(e.ExceptionObject as Exception);
         if (!OperatingSystem.IsWindows())
         {
@@ -144,6 +145,5 @@ internal static class Program
             {
                 RenderingMode = [Win32RenderingMode.AngleEgl, Win32RenderingMode.Software],
             })
-            .WithInterFont()
             .LogToTrace();
 }

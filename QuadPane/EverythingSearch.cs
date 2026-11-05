@@ -3,10 +3,13 @@ using System.Text;
 
 namespace QuadPane;
 
-public sealed record SearchResult(string Name, string Directory, string FullPath, bool IsFolder)
+public sealed record SearchResult(string Name, string Directory, string FullPath, bool IsFolder,
+    DateTime? Modified, long? Size, string TypeName)
 {
-    public string Kind => IsFolder ? "Thư mục" : "Tệp";
     public string Icon => IsFolder ? "\uE8B7" : "\uE8A5";
+    public string ModifiedText => Modified?.ToString("yyyy/MM/dd HH:mm") ?? "";
+    public string SizeText => Size is long size && size >= 0 && !IsFolder
+        ? $"{size / 1024 + (size % 1024 == 0 ? 0 : 1):N0} KB" : "";
 }
 public sealed record SearchResponse(IReadOnlyList<SearchResult> Results, uint Total);
 
@@ -15,7 +18,17 @@ public static class EverythingSearch
 {
     private const uint MaxResults = 200;
     private const uint RequestFullPath = 0x00000004;
+    private const uint RequestSize = 0x00000010;
+    private const uint RequestDateModified = 0x00000040;
     private static readonly object Gate = new(); // SDK giữ trạng thái truy vấn toàn cục
+
+    internal static void SelfCheck()
+    {
+        var item = new SearchResult("readme.md", @"C:\work", @"C:\work\readme.md", false,
+            new DateTime(2026, 11, 5, 14, 15, 0), 7168, "Markdown file");
+        if (item.ModifiedText != "2026/11/05 14:15" || item.SizeText != "7 KB")
+            throw new InvalidOperationException("Search metadata formatting failed.");
+    }
 
     static EverythingSearch()
     {
@@ -40,7 +53,7 @@ public static class EverythingSearch
         {
             Native.Reset();
             Native.SetSearch(query.Trim());
-            Native.SetRequestFlags(RequestFullPath);
+            Native.SetRequestFlags(RequestFullPath | RequestSize | RequestDateModified);
             Native.SetMax(MaxResults);
             if (!Native.Query(true))
             {
@@ -59,11 +72,43 @@ public static class EverythingSearch
                 string fullPath = buffer.ToString();
                 string name = Path.GetFileName(fullPath.TrimEnd(Path.DirectorySeparatorChar));
                 string directory = Path.GetDirectoryName(fullPath.TrimEnd(Path.DirectorySeparatorChar)) ?? "";
-                results.Add(new SearchResult(name, directory, fullPath, Native.IsFolderResult(i)));
+                bool isFolder = Native.IsFolderResult(i);
+                DateTime? modified = null;
+                if (Native.GetResultDateModified(i, out long filetime))
+                {
+                    try { modified = DateTime.FromFileTimeUtc(filetime).ToLocalTime(); }
+                    catch (ArgumentOutOfRangeException) { }
+                }
+                long? size = Native.GetResultSize(i, out long bytes) ? bytes : null;
+                results.Add(new SearchResult(name, directory, fullPath, isFolder, modified, size,
+                    GetTypeName(fullPath, isFolder)));
             }
             return new SearchResponse(results, Native.GetTotResults());
         }
     }
+
+    private static string GetTypeName(string path, bool isFolder)
+    {
+        uint attributes = isFolder ? 0x10u : 0x80u;
+        if (SHGetFileInfo(path, attributes, out var info, (uint)Marshal.SizeOf<SHFILEINFO>(), 0x410) != IntPtr.Zero &&
+            !string.IsNullOrWhiteSpace(info.TypeName)) return info.TypeName;
+        return isFolder ? "File folder" : (Path.GetExtension(path).TrimStart('.') is { Length: > 0 } ext
+            ? $"{ext.ToUpperInvariant()} file" : "File");
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct SHFILEINFO
+    {
+        public IntPtr Icon;
+        public int IconIndex;
+        public uint Attributes;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string DisplayName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)] public string TypeName;
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr SHGetFileInfo(string path, uint attributes, out SHFILEINFO info,
+        uint infoSize, uint flags);
 
     private static class Native
     {
@@ -89,5 +134,11 @@ public static class EverythingSearch
         [DllImport("EverythingSdk", EntryPoint = "Everything_IsFolderResult", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool IsFolderResult(uint index);
+        [DllImport("EverythingSdk", EntryPoint = "Everything_GetResultSize", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetResultSize(uint index, out long size);
+        [DllImport("EverythingSdk", EntryPoint = "Everything_GetResultDateModified", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetResultDateModified(uint index, out long filetime);
     }
 }

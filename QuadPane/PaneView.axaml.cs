@@ -37,11 +37,11 @@ public partial class PaneView : UserControl
 
     private PaneTab CurrentTab => _tabs[_selectedIndex];
     private ExplorerHost Host => CurrentTab.Host;
-    public string? CurrentPath => CurrentTab.Search is null ? Host.CurrentParsingName ?? CurrentTab.Path : null;
+    public string? CurrentPath => CurrentTab.Search is null ? CurrentTab.Path : null;
     public string DisplayPath => CurrentTab.Search is { } search ? $"Everything: {search.Query}" : AddressBox.Text ?? "";
     public int ItemCount => CurrentTab.Search?.ResultCount ?? Host.ItemCount;
     public bool ShowTree => _showTree;
-    public string?[] TabPaths => _tabs.Where(t => t.Search is null).Select(t => t.Host.CurrentParsingName ?? t.Path).ToArray();
+    public string?[] TabPaths => _tabs.Where(t => t.Search is null).Select(t => t.Path).ToArray();
     public string[] TabIds => _tabs.Where(t => t.Search is null).Select(t => t.Id).ToArray();
     public int ActiveTabIndex => Math.Clamp(_tabs.Take(_selectedIndex).Count(t => t.Search is null), 0, Math.Max(0, TabPaths.Length - 1));
 
@@ -51,7 +51,7 @@ public partial class PaneView : UserControl
         {
             int index = (_selectedIndex + offset) % _tabs.Count;
             if (_tabs[index].Search is not null) continue;
-            var current = _tabs[index].Host.CurrentParsingName ?? _tabs[index].Path;
+            var current = _tabs[index].Path;
             if (current is null) continue;
             try
             {
@@ -77,6 +77,12 @@ public partial class PaneView : UserControl
         return search;
     }
     public bool IsCurrentSearch(SearchResultsView search) => CurrentTab.Search == search;
+    public bool ContainsSearch(SearchResultsView search) => _tabs.Any(t => t.Search == search);
+    public void ActivateSearch(SearchResultsView search)
+    {
+        int index = _tabs.FindIndex(t => t.Search == search);
+        if (index >= 0) SelectTab(index, focus: false);
+    }
     public void Search(SearchResultsView view, string query)
     {
         var tab = _tabs.FirstOrDefault(t => t.Search == view);
@@ -154,6 +160,7 @@ public partial class PaneView : UserControl
                 PathChanged?.Invoke(this);
             }
         };
+        host.ItemCountChanged += () => { if (tab == CurrentTab) PathChanged?.Invoke(this); };
         selectButton.Click += (_, _) => SelectTab(_tabs.IndexOf(tab));
         closeButton.Click += (_, _) => CloseTab(tab);
         container.PointerPressed += (_, e) =>
@@ -189,21 +196,31 @@ public partial class PaneView : UserControl
     private void SelectTab(int index, bool focus = true)
     {
         if (index < 0 || index >= _tabs.Count) return;
-        _selectedIndex = index;
-        for (int i = 0; i < _tabs.Count; i++)
+        if (index == _selectedIndex && _tabs[index].Container.Classes.Contains("selected"))
         {
-            bool selected = i == index;
-            _tabs[i].Host.IsVisible = selected && _tabs[i].Search is null;
-            if (_tabs[i].Search is { } search) search.IsVisible = selected;
-            _tabs[i].Container.Classes.Set("selected", selected);
+            Activated?.Invoke(this);
+            if (focus) Dispatcher.UIThread.Post(FocusView, DispatcherPriority.Background);
+            return;
         }
+        int previous = _selectedIndex;
+        _selectedIndex = index;
+        if (previous != index && previous < _tabs.Count)
+        {
+            _tabs[previous].Host.IsVisible = false;
+            if (_tabs[previous].Search is { } oldSearch) oldSearch.IsVisible = false;
+            _tabs[previous].Container.Classes.Set("selected", false);
+        }
+        var selected = _tabs[index];
+        if (selected.Search is { } newSearch) newSearch.IsVisible = true;
+        else selected.Host.IsVisible = true;
+        selected.Container.Classes.Set("selected", true);
         NavigationBar.IsVisible = CurrentTab.Search is null;
         AddressBox.Text = CurrentTab.Display ?? "";
         AddressBox.Classes.Remove("error");
         Activated?.Invoke(this);
         PathChanged?.Invoke(this);
-        if (focus) Dispatcher.UIThread.Post(FocusView, DispatcherPriority.Background);
-        Dispatcher.UIThread.Post(() => CurrentTab.Container.BringIntoView(), DispatcherPriority.Background);
+        if (focus) Dispatcher.UIThread.Post(() => { if (CurrentTab == selected) FocusView(); }, DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(() => selected.Container.BringIntoView(), DispatcherPriority.Background);
     }
 
     private void CloseTab(PaneTab tab)

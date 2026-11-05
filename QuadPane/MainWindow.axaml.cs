@@ -23,8 +23,10 @@ public partial class MainWindow : Window
     private SearchResultsView? _searchView;
     private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromMinutes(2) };
     private readonly DispatcherTimer _gitTimer = new() { Interval = TimeSpan.FromSeconds(20) };
+    private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
     private CancellationTokenSource? _gitRefresh;
     private string? _gitFolder;
+    private string? _gitStatusPath;
     private bool _gitBusy;
     private UpdateService.Release? _availableRelease;
     private bool _checkingUpdate;
@@ -86,7 +88,8 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
         ActualThemeVariantChanged += (_, _) => ApplyThemeToNative();
         _updateTimer.Tick += (_, _) => _ = CheckForUpdatesAsync();
-        _gitTimer.Tick += (_, _) => UpdateStatus();
+        _gitTimer.Tick += (_, _) => { UpdateStatus(); RefreshGit(); };
+        _statusTimer.Tick += (_, _) => { _statusTimer.Stop(); UpdateStatusNow(); };
         Opened += OnOpened;
         Closing += OnClosing;
     }
@@ -193,9 +196,15 @@ public partial class MainWindow : Window
 
     private void UpdateStatus()
     {
+        _statusTimer.Stop();
+        _statusTimer.Start();
+    }
+
+    private void UpdateStatusNow()
+    {
         if (!_installingUpdate && !_gitBusy) StatusText.Text = $"{_active.ItemCount:N0} mục";
         ToolTip.SetTip(StatusText, _active.DisplayPath);
-        RefreshGit();
+        if (!string.Equals(_gitStatusPath, _active.CurrentPath, StringComparison.OrdinalIgnoreCase)) RefreshGit();
     }
 
     private async void RefreshGit()
@@ -204,6 +213,7 @@ public partial class MainWindow : Window
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(6));
         _gitRefresh = cancellation;
         var folder = _active.CurrentPath;
+        _gitStatusPath = folder;
         if (folder is null || !Directory.Exists(folder))
         {
             GitControls.IsVisible = false;
@@ -217,7 +227,7 @@ public partial class MainWindow : Window
             if (cancellation.IsCancellationRequested) return;
             _gitFolder = folder;
             GitCountText.Text = $"{info.Staged} / {info.Unstaged}";
-            GitBranchText.Text = info.Branch;
+            GitBranchText.Text = info.Branch.Length > 1000 ? info.Branch[..1000] : info.Branch;
             ToolTip.SetTip(GitBranchText, info.Branch);
             GitControls.IsVisible = true;
         }
@@ -301,17 +311,21 @@ public partial class MainWindow : Window
     private void SearchBox_TextChanged(object? sender, TextChangedEventArgs e)
     {
         var query = SearchBox.Text?.Trim() ?? "";
-        if (query.Length == 0)
+        if (_searchPane is { } owner && _searchView is { } view && owner.ContainsSearch(view))
         {
-            if (_searchPane == _active && _searchView is not null && _active.IsCurrentSearch(_searchView))
-                _active.Search(_searchView, "");
+            if (_mode == LayoutMode.Triple && owner.Index == 3)
+            {
+                _mode = LayoutMode.Quad;
+                ApplyLayout();
+            }
+            if (owner != _active || !owner.IsCurrentSearch(view)) owner.ActivateSearch(view);
+            owner.Search(view, query);
+            UpdateStatus();
             return;
         }
-        if (_searchPane != _active || _searchView is null || !_active.IsCurrentSearch(_searchView))
-        {
-            _searchPane = _active;
-            _searchView = _active.OpenSearchTab();
-        }
+        if (query.Length == 0) return;
+        _searchPane = _active;
+        _searchView = _active.OpenSearchTab();
         _active.Search(_searchView, query);
         UpdateStatus();
     }
@@ -643,6 +657,7 @@ public partial class MainWindow : Window
         }
         _updateTimer.Stop();
         _gitTimer.Stop();
+        _statusTimer.Stop();
         _gitRefresh?.Cancel();
         if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
         if (UsesBothSplitters(_mode)) RememberRatios();
