@@ -28,10 +28,11 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 - Nền Mica trên Windows 11; các máy không hỗ trợ dùng màu nền thay thế.
 - Panel đang hoạt động có viền màu nhấn (accent).
 - Mỗi panel có dải tab riêng. Tab mới mở tại `C:\`. Mỗi tab giữ Explorer Browser và lịch sử điều hướng riêng trong phiên chạy; các thư mục và tab đang chọn được khôi phục ở lần mở sau.
+- Mỗi tab có nút Pin để ghim thư mục đang xem làm home riêng. Nút Home chỉ bật khi tab đã ghim; nhấn để quay lại thư mục đó. Ghim được lưu cùng layout, và nhấn Pin lần nữa tại thư mục đã ghim để bỏ ghim.
 - Mở `QuadPane.exe "C:\duong-dan\thu-muc"` để chuyển tới thư mục. Có thể truyền đường dẫn file đang tồn tại để mở thư mục chứa file. Nếu thư mục đã ở một tab, QuadPane chọn tab đó; ưu tiên panel có số nhỏ hơn, rồi tab đang chọn trong panel. Nếu chưa có, QuadPane tạo tab tại panel 1. Lệnh gửi tới cửa sổ đang chạy và đưa cửa sổ lên trước.
 - Nút đóng cửa sổ ẩn QuadPane xuống khay hệ thống. Nhấp icon khay hoặc mở QuadPane lần nữa để hiện cửa sổ cũ; chọn **Thoát** trong menu icon khay để đóng hẳn app.
 - Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn mục đang chọn (nhiều mục: mỗi đường dẫn một dòng; không chọn: thư mục đang mở). Claude/Codex mở trong Windows Terminal nếu có, nếu không dùng PowerShell. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt ở góc trái thanh trạng thái có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
-- Thanh trạng thái hiển thị số mục trong tab; khi thư mục thuộc một Git repository và có `git` trong PATH, thanh hiện branch, số file đã stage/chưa stage, cùng nút Fetch, Pull (`--ff-only`) và Push. Không tự tạo merge commit.
+- Thanh trạng thái hiển thị số mục trong tab; khi thư mục thuộc một Git repository và có `git` trong PATH, thanh hiện branch, số file đã stage/chưa stage, cùng nút Fetch, Pull (`--ff-only`) và Push. Nút Git log chỉ hiện khi có TortoiseGit và mở lịch sử trong TortoiseGit. Không tự tạo merge commit.
 - Ô Everything nằm trên thanh tiêu đề. Tab kết quả giữ panel ban đầu khi đổi panel/tab rồi tiếp tục gõ; QuadPane chọn lại tab đó. Danh sách dùng font hệ thống và các cột Name, Date modified, Type, Size; tooltip của mục hiện đầy đủ đường dẫn. Enter/↓ chuyển tới danh sách; trong danh sách, Enter hoặc nhấp đúp mở mục. Tab tìm kiếm chỉ tồn tại trong phiên chạy.
 - Theme đổi theo vòng: **Theo hệ thống → Sáng → Tối**. Phần Explorer nhúng (danh sách file, header cột, cây thư mục, menu chuột phải) và khung cửa sổ đổi màu theo.
 

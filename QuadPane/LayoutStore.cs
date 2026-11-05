@@ -23,6 +23,7 @@ public sealed class LayoutData
     public int ActivePane { get; set; }
     public string?[] Paths { get; set; } = new string?[4];
     public string?[][] TabPaths { get; set; } = new string?[4][];
+    public string?[][] TabHomes { get; set; } = new string?[4][];
     public string[][] TabIds { get; set; } = new string[4][];
     public int[] ActiveTabs { get; set; } = new int[4];
     public bool[] ShowTree { get; set; } = new bool[4];
@@ -55,6 +56,14 @@ public static class LayoutStore
 
     public static string DefaultPath(int index) => DefaultPaths()[index];
 
+    internal static void SelfCheckTabHomes()
+    {
+        var source = new LayoutData { TabHomes = [[@"C:\Home", null], [], [], []] };
+        var restored = JsonSerializer.Deserialize<LayoutData>(JsonSerializer.Serialize(source, Options), Options);
+        if (restored?.TabHomes[0] is not [@"C:\Home", null] || restored.TabHomes[1].Length != 0)
+            throw new InvalidOperationException("Không lưu/khôi phục được thư mục home của từng tab.");
+    }
+
     public static LayoutData Load()
     {
         LayoutData? data = null;
@@ -69,6 +78,7 @@ public static class LayoutStore
         if (data.ShowTree is not { Length: 4 }) data.ShowTree = new bool[4];
         if (data.Paths is not { Length: 4 }) data.Paths = new string?[4];
         if (data.TabPaths is not { Length: 4 }) data.TabPaths = new string?[4][];
+        if (data.TabHomes is not { Length: 4 }) data.TabHomes = new string?[4][];
         if (data.TabIds is not { Length: 4 }) data.TabIds = new string[4][];
         if (data.ActiveTabs is not { Length: 4 }) data.ActiveTabs = new int[4];
 
@@ -78,6 +88,8 @@ public static class LayoutStore
         {
             if (string.IsNullOrWhiteSpace(data.Paths[i])) data.Paths[i] = defaults[i];
             if (data.TabPaths[i] is not { Length: > 0 }) data.TabPaths[i] = [data.Paths[i]];
+            if (data.TabHomes[i] is not { } homes || homes.Length != data.TabPaths[i].Length)
+                data.TabHomes[i] = new string?[data.TabPaths[i].Length];
             var ids = data.TabIds[i];
             if (ids is not { Length: > 0 } || ids.Length != data.TabPaths[i].Length)
                 ids = new string[data.TabPaths[i].Length];

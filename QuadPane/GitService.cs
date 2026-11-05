@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Win32;
 
 namespace QuadPane;
 
@@ -6,6 +7,45 @@ internal sealed record GitInfo(string Branch, int Staged, int Unstaged);
 
 internal static class GitService
 {
+    public static string? FindTortoiseGit()
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+        const string appPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\TortoiseGitProc.exe";
+        foreach (var root in new[] { Registry.CurrentUser, Registry.LocalMachine })
+        {
+            try
+            {
+                using var key = root.OpenSubKey(appPath);
+                if (key?.GetValue(null) is string registered && File.Exists(registered.Trim('"')))
+                    return registered.Trim('"');
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
+        }
+        foreach (var root in new[]
+        {
+            Environment.GetEnvironmentVariable("ProgramW6432"),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+        })
+        {
+            if (string.IsNullOrWhiteSpace(root)) continue;
+            var file = Path.Combine(root, "TortoiseGit", "bin", "TortoiseGitProc.exe");
+            if (File.Exists(file)) return file;
+        }
+        foreach (var root in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
+        {
+            var directory = root.Trim().Trim('"');
+            try
+            {
+                if (!Path.IsPathFullyQualified(directory)) continue;
+                var file = Path.Combine(directory, "TortoiseGitProc.exe");
+                if (File.Exists(file)) return file;
+            }
+            catch (ArgumentException) { }
+        }
+        return null;
+    }
+
     public static async Task<GitInfo> StatusAsync(string folder, CancellationToken token)
     {
         var output = await RunAsync(folder, ["status", "--porcelain=v1", "--branch"], token);

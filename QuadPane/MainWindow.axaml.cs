@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Avalonia;
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
     private CancellationTokenSource? _gitRefresh;
     private string? _gitFolder;
+    private string? _tortoiseGit;
     private string? _gitStatusPath;
     private bool _gitBusy;
     private UpdateService.Release? _availableRelease;
@@ -68,7 +70,8 @@ public partial class MainWindow : Window
             var paths = _layout.TabPaths[i] is { Length: > 0 } saved ? saved : [_layout.Paths[i]];
             var ids = _layout.TabIds[i] is { Length: > 0 } savedIds && savedIds.Length == paths.Length
                 ? savedIds : Enumerable.Range(0, paths.Length).Select(j => j == 0 ? $"QuadPane.Pane{i}" : $"QuadPane.Pane{i}.Tab{Guid.NewGuid():N}").ToArray();
-            var pane = new PaneView(i, paths, ids, _layout.ActiveTabs[i], _layout.ShowTree[i], LayoutStore.DefaultPath(i));
+            var pane = new PaneView(i, paths, ids, _layout.ActiveTabs[i], _layout.ShowTree[i],
+                LayoutStore.DefaultPath(i), _layout.TabHomes[i]);
             Grid.SetRow(pane, Cells[i].Row);
             Grid.SetColumn(pane, Cells[i].Col);
             pane.Activated += SetActive;
@@ -86,7 +89,11 @@ public partial class MainWindow : Window
 
         TitleBar.PointerPressed += TitleBar_PointerPressed;
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
-        ActualThemeVariantChanged += (_, _) => ApplyThemeToNative();
+        ActualThemeVariantChanged += (_, _) =>
+        {
+            ApplyThemeToNative();
+            DispatcherTimer.RunOnce(ApplyThemeToNative, TimeSpan.FromMilliseconds(150), DispatcherPriority.Background);
+        };
         _updateTimer.Tick += (_, _) => _ = CheckForUpdatesAsync();
         _gitTimer.Tick += (_, _) => { UpdateStatus(); RefreshGit(); };
         _statusTimer.Tick += (_, _) => { _statusTimer.Stop(); UpdateStatusNow(); };
@@ -217,6 +224,7 @@ public partial class MainWindow : Window
         if (folder is null || !Directory.Exists(folder))
         {
             GitControls.IsVisible = false;
+            GitActions.IsVisible = false;
             _gitFolder = null;
             _gitRefresh = null;
             return;
@@ -226,16 +234,20 @@ public partial class MainWindow : Window
             var info = await GitService.StatusAsync(folder, cancellation.Token);
             if (cancellation.IsCancellationRequested) return;
             _gitFolder = folder;
-            GitCountText.Text = $"{info.Staged} / {info.Unstaged}";
+            GitCountText.Text = $"Đã stage {info.Staged} · Chưa stage {info.Unstaged}";
             GitBranchText.Text = info.Branch.Length > 1000 ? info.Branch[..1000] : info.Branch;
             ToolTip.SetTip(GitBranchText, info.Branch);
+            _tortoiseGit = GitService.FindTortoiseGit();
+            GitLogButton.IsVisible = _tortoiseGit is not null;
             GitControls.IsVisible = true;
+            GitActions.IsVisible = true;
         }
         catch (Exception)
         {
             if (cancellation.IsCancellationRequested) return;
             _gitFolder = null;
             GitControls.IsVisible = false;
+            GitActions.IsVisible = false;
         }
         finally
         {
@@ -247,11 +259,29 @@ public partial class MainWindow : Window
     private void GitPull_Click(object? sender, RoutedEventArgs e) => _ = RunGitActionAsync("pull");
     private void GitPush_Click(object? sender, RoutedEventArgs e) => _ = RunGitActionAsync("push");
 
+    private void GitLog_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_gitFolder is not { } folder || _tortoiseGit is not { } exe) return;
+        try
+        {
+            var start = new ProcessStartInfo(exe) { UseShellExecute = true, WorkingDirectory = folder };
+            start.ArgumentList.Add("/command:log");
+            start.ArgumentList.Add($"/path:{folder}");
+            using var process = Process.Start(start)
+                ?? throw new InvalidOperationException("Không mở được TortoiseGit log.");
+        }
+        catch (Exception ex)
+        {
+            UpdateService.ShowError(this, ex.Message, "TortoiseGit");
+        }
+    }
+
     private async Task RunGitActionAsync(string action)
     {
         if (_gitBusy || _gitFolder is not { } folder) return;
         _gitBusy = true;
         GitControls.IsEnabled = false;
+        GitActions.IsEnabled = false;
         StatusText.Text = $"Git {action}...";
         try
         {
@@ -269,6 +299,7 @@ public partial class MainWindow : Window
         {
             _gitBusy = false;
             GitControls.IsEnabled = true;
+            GitActions.IsEnabled = true;
             RefreshGit();
         }
     }
@@ -454,6 +485,7 @@ public partial class MainWindow : Window
         ((App)Application.Current!).ApplyThemeMode(_layout.Theme);
         UpdateThemeButton();
         ApplyThemeToNative();
+        DispatcherTimer.RunOnce(ApplyThemeToNative, TimeSpan.FromMilliseconds(150), DispatcherPriority.Background);
     }
 
     private void UpdateThemeButton()
@@ -668,6 +700,7 @@ public partial class MainWindow : Window
         {
             _layout.Paths[i] = _panes[i].CurrentPath ?? _layout.Paths[i];
             _layout.TabPaths[i] = _panes[i].TabPaths;
+            _layout.TabHomes[i] = _panes[i].TabHomes;
             _layout.TabIds[i] = _panes[i].TabIds;
             _layout.ActiveTabs[i] = _panes[i].ActiveTabIndex;
             _layout.ShowTree[i] = _panes[i].ShowTree;

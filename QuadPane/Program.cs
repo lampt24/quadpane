@@ -20,6 +20,7 @@ internal static class Program
     {
         if (args is ["--check-git-status"]) { GitService.SelfCheckAsync().GetAwaiter().GetResult(); return; }
         if (args is ["--check-search-result"]) { EverythingSearch.SelfCheck(); return; }
+        if (args is ["--check-tab-homes"]) { LayoutStore.SelfCheckTabHomes(); return; }
         AppDomain.CurrentDomain.UnhandledException += (_, e) => App.LogCrash(e.ExceptionObject as Exception);
         if (!OperatingSystem.IsWindows())
         {

@@ -46,7 +46,7 @@ jobs:
         if: matrix.rid == 'win-x64'
         shell: pwsh
         run: |
-          foreach ($argument in @('--check-git-status', '--check-search-result')) {
+          foreach ($argument in @('--check-git-status', '--check-search-result', '--check-tab-homes')) {
             $process = Start-Process -FilePath (Resolve-Path 'publish/QuadPane.exe') -ArgumentList $argument -WorkingDirectory (Get-Location).Path -PassThru -Wait
             if ($process.ExitCode -ne 0) { throw "$argument smoke test failed: $($process.ExitCode)" }
           }

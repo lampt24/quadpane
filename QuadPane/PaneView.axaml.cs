@@ -23,6 +23,7 @@ public partial class PaneView : UserControl
         public SearchResultsView? Search { get; init; }
         public string? Path { get; set; }
         public string? Display { get; set; }
+        public string? HomePath { get; set; }
     }
 
     private readonly List<PaneTab> _tabs = [];
@@ -42,6 +43,7 @@ public partial class PaneView : UserControl
     public int ItemCount => CurrentTab.Search?.ResultCount ?? Host.ItemCount;
     public bool ShowTree => _showTree;
     public string?[] TabPaths => _tabs.Where(t => t.Search is null).Select(t => t.Path).ToArray();
+    public string?[] TabHomes => _tabs.Where(t => t.Search is null).Select(t => t.HomePath).ToArray();
     public string[] TabIds => _tabs.Where(t => t.Search is null).Select(t => t.Id).ToArray();
     public int ActiveTabIndex => Math.Clamp(_tabs.Take(_selectedIndex).Count(t => t.Search is null), 0, Math.Max(0, TabPaths.Length - 1));
 
@@ -95,14 +97,16 @@ public partial class PaneView : UserControl
     public PaneView(int index, string? initialPath, bool showTree)
         : this(index, [initialPath], [$"QuadPane.Pane{index}"], 0, showTree, LayoutStore.DefaultPath(index)) { }
 
-    public PaneView(int index, string?[] paths, string[] ids, int selectedIndex, bool showTree, string defaultPath)
+    public PaneView(int index, string?[] paths, string[] ids, int selectedIndex, bool showTree,
+        string defaultPath, string?[]? homes = null)
     {
         InitializeComponent();
         Index = index;
         _showTree = showTree;
         _defaultPath = defaultPath;
         TreeToggle.IsChecked = showTree;
-        for (int i = 0; i < paths.Length; i++) AddTab(paths[i], ids[i], select: false);
+        for (int i = 0; i < paths.Length; i++)
+            AddTab(paths[i], ids[i], select: false, home: homes is not null && i < homes.Length ? homes[i] : null);
         if (_tabs.Count == 0) AddTab(defaultPath, $"QuadPane.Pane{index}", select: false);
         SelectTab(Math.Clamp(selectedIndex, 0, _tabs.Count - 1), focus: false);
         AddHandler(PointerPressedEvent, (_, _) => Activated?.Invoke(this), RoutingStrategies.Tunnel);
@@ -118,7 +122,8 @@ public partial class PaneView : UserControl
         }
     }
 
-    private void AddTab(string? path, string id, bool select, SearchResultsView? search = null, bool focus = true)
+    private void AddTab(string? path, string id, bool select, SearchResultsView? search = null,
+        bool focus = true, string? home = null)
     {
         var host = new ExplorerHost
         {
@@ -146,7 +151,8 @@ public partial class PaneView : UserControl
         row.Children.Add(closeButton);
         var container = new Border { Child = row };
         container.Classes.Add("tabItem");
-        var tab = new PaneTab { Host = host, Search = search, Container = container, Label = label, CloseButton = closeButton, Id = id, Path = path, Display = path };
+        var tab = new PaneTab { Host = host, Search = search, Container = container, Label = label,
+            CloseButton = closeButton, Id = id, Path = path, Display = path, HomePath = home };
         host.Navigated += (display, parsing) =>
         {
             if (!_tabs.Contains(tab)) return;
@@ -157,6 +163,7 @@ public partial class PaneView : UserControl
             {
                 AddressBox.Text = display;
                 AddressBox.Classes.Remove("error");
+                UpdateHomeButtons();
                 PathChanged?.Invoke(this);
             }
         };
@@ -215,6 +222,7 @@ public partial class PaneView : UserControl
         else selected.Host.IsVisible = true;
         selected.Container.Classes.Set("selected", true);
         NavigationBar.IsVisible = CurrentTab.Search is null;
+        UpdateHomeButtons();
         AddressBox.Text = CurrentTab.Display ?? "";
         AddressBox.Classes.Remove("error");
         Activated?.Invoke(this);
@@ -279,6 +287,44 @@ public partial class PaneView : UserControl
         if (CurrentTab.Search is null) return Host.Navigate(path);
         OpenTab(path);
         return true;
+    }
+
+    private void UpdateHomeButtons()
+    {
+        var tab = CurrentTab;
+        var path = tab.Search is null ? tab.Path : null;
+        bool canPin = false;
+        try { canPin = path is not null && Path.IsPathFullyQualified(path); }
+        catch (ArgumentException) { }
+        PinButton.IsEnabled = canPin;
+        PinButton.IsChecked = canPin && tab.HomePath is not null &&
+            string.Equals(path, tab.HomePath, StringComparison.OrdinalIgnoreCase);
+        HomeButton.IsEnabled = tab.Search is null && tab.HomePath is not null;
+        ToolTip.SetTip(PinButton, PinButton.IsChecked == true
+            ? "Bỏ ghim thư mục home của tab" : "Ghim thư mục này làm home của tab");
+        ToolTip.SetTip(HomeButton, tab.HomePath is null
+            ? "Chưa ghim thư mục cho tab này" : $"Về {tab.HomePath}");
+    }
+
+    private void Pin_Click(object? sender, RoutedEventArgs e)
+    {
+        // ponytail: home chỉ nhận thư mục filesystem; dùng PIDL nếu cần ghim thư mục ảo.
+        var path = CurrentPath;
+        if (path is null || !Directory.Exists(path))
+        {
+            UpdateHomeButtons();
+            ShowActionError("Thư mục này không còn tồn tại.");
+            return;
+        }
+        CurrentTab.HomePath = PinButton.IsChecked == true ? path : null;
+        UpdateHomeButtons();
+    }
+
+    private void Home_Click(object? sender, RoutedEventArgs e)
+    {
+        if (CurrentTab.HomePath is not { } home) return;
+        if (!Directory.Exists(home) || !Host.Navigate(home))
+            ShowActionError($"Không thể mở thư mục home: {home}");
     }
 
     public void FocusAddress()
