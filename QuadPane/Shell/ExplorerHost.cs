@@ -20,6 +20,7 @@ public sealed class ExplorerHost : NativeControlHost
 
     private IntPtr _hostHwnd;
     private IExplorerBrowser? _browser;
+    private BrowserSite? _site;
     private EventSink? _sink;
     private uint _cookie;
     private IntPtr _currentPidl;
@@ -44,8 +45,7 @@ public sealed class ExplorerHost : NativeControlHost
         {
             if (_showTree == value) return;
             _showTree = value;
-            // EBO_SHOWFRAMES quyết định cấu trúc khung lúc khởi tạo Browser.
-            // Điều hướng lại một Browser cũ không tạo ra navigation pane.
+            // Pane visibility được đọc khi Browser khởi tạo, nên phải dựng lại.
             if (_browser != null) RecreateBrowser();
         }
     }
@@ -57,8 +57,8 @@ public sealed class ExplorerHost : NativeControlHost
         set { _dark = value; ApplyTheme(); }
     }
 
-    private ExplorerBrowserOptions CurrentOptions() =>
-        ExplorerBrowserOptions.NoBorder | (_showTree ? ExplorerBrowserOptions.ShowFrames : 0);
+    private const ExplorerBrowserOptions BrowserOptions =
+        ExplorerBrowserOptions.NoBorder | ExplorerBrowserOptions.ShowFrames;
 
     // ---- Vòng đời cửa sổ native ----
 
@@ -97,7 +97,9 @@ public sealed class ExplorerHost : NativeControlHost
     {
         var type = Type.GetTypeFromCLSID(CLSID_ExplorerBrowser, throwOnError: true)!;
         _browser = (IExplorerBrowser)Activator.CreateInstance(type)!;
-        Marshal.ThrowExceptionForHR(_browser.SetOptions(CurrentOptions()));
+        _site = new BrowserSite(this);
+        Marshal.ThrowExceptionForHR(((IObjectWithSite)_browser).SetSite(_site));
+        Marshal.ThrowExceptionForHR(_browser.SetOptions(BrowserOptions));
         if (!GetClientRect(_hostHwnd, out var rc)) rc = new RECT(0, 0, 1, 1);
         var fs = new FOLDERSETTINGS { ViewMode = FVM_DETAILS, fFlags = 0 };
         Marshal.ThrowExceptionForHR(_browser.Initialize(_hostHwnd, ref rc, ref fs));
@@ -115,6 +117,7 @@ public sealed class ExplorerHost : NativeControlHost
         _browser.Destroy();
         Marshal.ReleaseComObject(_browser);
         _browser = null;
+        _site = null;
     }
 
     private void RecreateBrowser()
@@ -230,6 +233,25 @@ public sealed class ExplorerHost : NativeControlHost
         string parsing = GetName(pidl, SIGDN_DESKTOPABSOLUTEPARSING) ?? display;
         Navigated?.Invoke(display, parsing);
         Dispatcher.UIThread.Post(ApplyTheme, DispatcherPriority.Background);
+    }
+
+    [ComVisible(true), ClassInterface(ClassInterfaceType.None)]
+    private sealed class BrowserSite(ExplorerHost owner) : IComServiceProvider, IExplorerPaneVisibility
+    {
+        public int QueryService(ref Guid service, ref Guid iid, out IntPtr result)
+        {
+            result = IntPtr.Zero;
+            if (service != IID_IExplorerPaneVisibility || iid != IID_IExplorerPaneVisibility)
+                return unchecked((int)0x80004002); // E_NOINTERFACE
+            result = Marshal.GetComInterfaceForObject(this, typeof(IExplorerPaneVisibility));
+            return 0;
+        }
+
+        public int GetPaneState(ref Guid pane, out uint state)
+        {
+            state = pane == EP_NavPane && !owner._showTree ? 0x20002u : 0u; // EPS_FORCE | EPS_DEFAULT_OFF
+            return 0;
+        }
     }
 
     [ComVisible(true)]

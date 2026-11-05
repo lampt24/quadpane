@@ -200,8 +200,8 @@ public partial class PaneView : UserControl
     }
 
     private void AddTab_Click(object? sender, RoutedEventArgs e) => OpenTab();
-    private void Claude_Click(object? sender, RoutedEventArgs e) => LaunchTool("claude");
-    private void Codex_Click(object? sender, RoutedEventArgs e) => LaunchTool("codex");
+    private void Claude_Click(object? sender, RoutedEventArgs e) => LaunchTerminal("claude");
+    private void Codex_Click(object? sender, RoutedEventArgs e) => LaunchTerminal("codex");
     private void VSCode_Click(object? sender, RoutedEventArgs e) => LaunchTool("code", ".");
 
     private string FolderPath()
@@ -237,6 +237,50 @@ public partial class PaneView : UserControl
                 WorkingDirectory = FolderPath(),
                 UseShellExecute = true,
             }) ?? throw new InvalidOperationException($"Không thể mở {name}.");
+        }
+        catch (Exception ex) { ShowActionError(ex.Message); }
+    }
+
+    private void LaunchTerminal(string command)
+    {
+        try
+        {
+            var folder = FolderPath();
+            var executable = FindTool(command);
+            var invocation = "& '" + executable.Replace("'", "''") + "'";
+            string shell;
+            try { shell = FindTool("pwsh"); }
+            catch (FileNotFoundException)
+            {
+                shell = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
+                    "WindowsPowerShell", "v1.0", "powershell.exe");
+            }
+
+            try
+            {
+                var terminal = new ProcessStartInfo(FindTool("wt"))
+                {
+                    WorkingDirectory = folder,
+                    UseShellExecute = true,
+                };
+                foreach (var arg in new[] { "-d", folder, shell, "-NoExit", "-Command", invocation })
+                    terminal.ArgumentList.Add(arg);
+                using var process = Process.Start(terminal) ?? throw new InvalidOperationException("Không thể mở Windows Terminal.");
+                return;
+            }
+            catch (System.ComponentModel.Win32Exception) { }
+            catch (FileNotFoundException) { }
+            catch (InvalidOperationException) { }
+
+            var powershell = new ProcessStartInfo(shell)
+            {
+                WorkingDirectory = folder,
+                UseShellExecute = true,
+            };
+            foreach (var arg in new[] { "-NoExit", "-Command", invocation })
+                powershell.ArgumentList.Add(arg);
+            using var fallback = Process.Start(powershell)
+                ?? throw new InvalidOperationException("Không thể mở PowerShell.");
         }
         catch (Exception ex) { ShowActionError(ex.Message); }
     }

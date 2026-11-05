@@ -28,7 +28,7 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 - Nền Mica trên Windows 11; các máy không hỗ trợ dùng màu nền thay thế.
 - Panel đang hoạt động có viền màu nhấn (accent).
 - Mỗi panel có dải tab riêng. Tab mới mở tại `C:\`. Mỗi tab giữ Explorer Browser và lịch sử điều hướng riêng trong phiên chạy; các thư mục và tab đang chọn được khôi phục ở lần mở sau.
-- Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt trên thanh tiêu đề có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
+- Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn. Claude/Codex mở trong Windows Terminal nếu có, nếu không dùng PowerShell. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt trên thanh tiêu đề có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
 - Theme đổi theo vòng: **Theo hệ thống → Sáng → Tối**. Phần Explorer nhúng (danh sách file, header cột, cây thư mục, menu chuột phải) và khung cửa sổ đổi màu theo.
 
 ## Logo & icon

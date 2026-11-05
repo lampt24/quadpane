@@ -33,6 +33,25 @@ internal interface IExplorerBrowserEvents
     [PreserveSig] int OnNavigationFailed(IntPtr pidlFolder);
 }
 
+[ComImport, Guid("fc4801a3-2ba9-11cf-a229-00aa003d7352"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IObjectWithSite
+{
+    [PreserveSig] int SetSite([MarshalAs(UnmanagedType.IUnknown)] object? site);
+    [PreserveSig] int GetSite(ref Guid iid, out IntPtr site);
+}
+
+[ComVisible(true), Guid("6d5140c1-7436-11ce-8034-00aa006009fa"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IComServiceProvider
+{
+    [PreserveSig] int QueryService(ref Guid service, ref Guid iid, out IntPtr result);
+}
+
+[ComVisible(true), Guid("e07010ec-bc17-44c0-97b0-46c7c95b9edc"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IExplorerPaneVisibility
+{
+    [PreserveSig] int GetPaneState(ref Guid pane, out uint state);
+}
+
 [ComImport, Guid("68284faa-6a48-11d0-8c78-00c04fd918b4"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IInputObject
 {
@@ -59,7 +78,7 @@ internal enum ExplorerBrowserOptions : uint
 {
     None = 0,
     NavigateOnce = 0x1,
-    ShowFrames = 0x2,          // hiện navigation pane (cây thư mục) bên trái
+    ShowFrames = 0x2,          // hiện command bar và các pane; IExplorerPaneVisibility chọn pane cần ẩn
     AlwaysNavigate = 0x4,
     NoTravelLog = 0x8,
     NoWrapperWindow = 0x10,
@@ -119,6 +138,8 @@ internal static class NativeMethods
 {
     public static readonly Guid CLSID_ExplorerBrowser = new("71f96385-ddd6-48d3-a0c1-ae06e8b055fb");
     public static readonly Guid IID_IShellView = new("000214e3-0000-0000-c000-000000000046");
+    public static readonly Guid IID_IExplorerPaneVisibility = new("e07010ec-bc17-44c0-97b0-46c7c95b9edc");
+    public static readonly Guid EP_NavPane = new("cb316b22-25f7-42b8-8a09-540d23a43c2f");
 
     public const uint FVM_DETAILS = 4;
 
