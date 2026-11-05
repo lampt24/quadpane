@@ -73,6 +73,7 @@ internal static class ShellTheme
         if (hostHwnd == IntPtr.Zero) return;
         var back = (IntPtr)(dark ? DarkBack : LightBack);
         var text = (IntPtr)(dark ? DarkText : LightText);
+        var systemFont = GetStockObject(17); // DEFAULT_GUI_FONT; Windows sở hữu handle này.
 
         EnumChildWindows(hostHwnd, (h, _) =>
         {
@@ -81,15 +82,18 @@ internal static class ShellTheme
             {
                 case "SysListView32":
                     SetWindowTheme(h, dark ? "DarkMode_ItemsView" : "ItemsView", null);
+                    ApplySystemFont(h);
                     SendMessage(h, LVM_SETBKCOLOR, IntPtr.Zero, back);
                     SendMessage(h, LVM_SETTEXTBKCOLOR, IntPtr.Zero, back);
                     SendMessage(h, LVM_SETTEXTCOLOR, IntPtr.Zero, text);
                     break;
                 case "SysHeader32":
                     SetWindowTheme(h, dark ? "DarkMode_ItemsView" : "ItemsView", null);
+                    ApplySystemFont(h);
                     break;
                 case "SysTreeView32":
                     SetWindowTheme(h, dark ? "DarkMode_Explorer" : "Explorer", null);
+                    ApplySystemFont(h);
                     SendMessage(h, TVM_SETBKCOLOR, IntPtr.Zero, dark ? back : (IntPtr)(-1));
                     SendMessage(h, TVM_SETTEXTCOLOR, IntPtr.Zero, dark ? text : (IntPtr)(-1));
                     break;
@@ -103,6 +107,12 @@ internal static class ShellTheme
             InvalidateRect(h, IntPtr.Zero, true);
             return true;
         }, IntPtr.Zero);
+
+        void ApplySystemFont(IntPtr hwnd)
+        {
+            if (systemFont != IntPtr.Zero && SendMessage(hwnd, WM_GETFONT, IntPtr.Zero, IntPtr.Zero) != systemFont)
+                SendMessage(hwnd, WM_SETFONT, systemFont, (IntPtr)1);
+        }
     }
 
     private static void Try(Action a)

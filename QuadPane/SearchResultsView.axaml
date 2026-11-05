@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:QuadPane"
-             x:Class="QuadPane.SearchResultsView">
+             x:Class="QuadPane.SearchResultsView" FontSize="12">
     <Grid RowDefinitions="26,*,26" Background="{DynamicResource PaneBackgroundBrush}">
         <Grid Grid.Row="0" ColumnDefinitions="22,2.2*,1.3*,1.2*,70" Margin="4,0"
               Background="{DynamicResource PaneHeaderBrush}">

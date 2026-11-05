@@ -4,14 +4,14 @@
         Title="QuadPane"
         FontFamily="Segoe UI Variable, Segoe UI"
         Icon="/Assets/QuadPane.ico"
-        Width="1280" Height="800" MinWidth="760" MinHeight="420"
+        Width="1280" Height="800" MinWidth="830" MinHeight="420"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="40"
         TransparencyLevelHint="Mica, AcrylicBlur, None"
         TransparencyBackgroundFallback="{DynamicResource WindowFallbackBrush}"
         Background="Transparent">
 
-    <Grid RowDefinitions="40,*,Auto" Background="{DynamicResource WindowFallbackBrush}">
+    <Grid RowDefinitions="40,*,30" Background="{DynamicResource WindowFallbackBrush}">
 
         <!-- ===== Thanh tiêu đề tự vẽ (nút đóng/thu nhỏ của hệ thống ở góc phải) ===== -->
         <Grid x:Name="TitleBar" Grid.Row="0" Background="{DynamicResource TitleSurfaceBrush}"
@@ -31,9 +31,9 @@
                            Foreground="{DynamicResource StatusMutedTextBrush}"/>
             </StackPanel>
 
-            <TextBox x:Name="SearchBox" Classes="titleSearch" Grid.Column="1" MaxWidth="260" MinWidth="130" Margin="8,4,12,4"
+            <TextBox x:Name="SearchBox" Classes="titleSearch" Grid.Column="1" Width="250" Margin="8,4,12,4"
                      FocusAdorner="{x:Null}"
-                     HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                     HorizontalAlignment="Right" VerticalAlignment="Center"
                      PlaceholderText="Tìm với Everything..." AutomationProperties.Name="Tìm với Everything"
                      TextChanged="SearchBox_TextChanged" KeyDown="SearchBox_KeyDown"/>
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -93,8 +93,9 @@
                         ToolTip.Tip="Tải và cài phiên bản mới" Click="UpdateButton_Click"/>
                 <Button x:Name="UpdateErrorButton" Grid.Column="3" Classes="update" IsVisible="False"
                         Content="Lỗi kiểm tra cập nhật" Click="UpdateErrorButton_Click"/>
-                <Grid x:Name="GitControls" Grid.Column="4" ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto"
-                      ColumnSpacing="6" Margin="12,2,0,2" VerticalAlignment="Center" IsVisible="False">
+                <Grid x:Name="GitControls" Grid.Column="4" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                      ColumnSpacing="6" Margin="12,2,0,2" HorizontalAlignment="Right"
+                      VerticalAlignment="Center" IsVisible="False">
                     <Path Grid.Column="0" Classes="gitIcon" Width="15" Height="15"
                           Stroke="{DynamicResource StatusMutedTextBrush}"
                           Data="M2 12h6 M16 12h6 M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8"/>
@@ -104,8 +105,11 @@
                     <Path Grid.Column="2" Classes="gitIcon" Width="15" Height="15" Margin="7,0,0,0"
                           Stroke="{DynamicResource StatusMutedTextBrush}"
                           Data="M6 6v12 M6 6a9 9 0 0 0 9 9 M6 0a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M6 18a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M18 12a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/>
-                    <TextBlock x:Name="GitBranchText" Grid.Column="3" VerticalAlignment="Center" FontSize="11"
-                               TextWrapping="Wrap" Foreground="{DynamicResource StatusTextBrush}"/>
+                    <Viewbox Grid.Column="3" MaxWidth="320" Stretch="Uniform" StretchDirection="DownOnly"
+                             VerticalAlignment="Center">
+                        <TextBlock x:Name="GitBranchText" FontSize="11" TextWrapping="NoWrap"
+                                   Foreground="{DynamicResource StatusTextBrush}"/>
+                    </Viewbox>
                     <Button Grid.Column="4" Classes="gitAction" ToolTip.Tip="Git fetch"
                             AutomationProperties.Name="Git fetch" Click="GitFetch_Click">
                         <Path Classes="gitIcon" Data="M20 11a8 8 0 0 0-14-5 M4 4v5h5 M4 13a8 8 0 0 0 14 5 M20 20v-5h-5"/>

@@ -185,6 +185,8 @@ internal static class NativeMethods
     public const uint WM_NULL = 0x0000;
     public const uint WM_SIZE = 0x0005;
     public const uint WM_ERASEBKGND = 0x0014;
+    public const uint WM_SETFONT = 0x0030;
+    public const uint WM_GETFONT = 0x0031;
     public const uint WM_THEMECHANGED = 0x031A;
     public const uint WM_KEYDOWN = 0x0100;
     public const uint WM_SYSKEYDOWN = 0x0104;
@@ -250,6 +252,9 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern IntPtr LoadCursor(IntPtr hInstance, IntPtr cursor);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr GetStockObject(int index);
 
     [DllImport("kernel32.dll")]
     public static extern uint GetCurrentThreadId();
