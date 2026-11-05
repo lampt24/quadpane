@@ -120,7 +120,7 @@ public partial class PaneView : UserControl
             }
         };
         _tabs.Add(tab);
-        TabStrip.Children.Add(container);
+        TabStrip.Children.Insert(TabStrip.Children.Count - 1, container);
         HostLayer.Children.Add(host);
         UpdateCloseButtons();
         if (select) SelectTab(_tabs.Count - 1);

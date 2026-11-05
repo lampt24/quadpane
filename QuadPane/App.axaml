@@ -30,6 +30,7 @@
                     <SolidColorBrush x:Key="AddressBackgroundBrush" Color="#FFFFFF"/>
                     <SolidColorBrush x:Key="TabHoverBrush" Color="#0A000000"/>
                     <SolidColorBrush x:Key="TabBarBrush" Color="#EAEAEA"/>
+                    <SolidColorBrush x:Key="TabSelectedBrush" Color="#FFFFFF"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="WindowFallbackBrush" Color="#191919"/>
@@ -53,6 +54,7 @@
                     <SolidColorBrush x:Key="AddressBackgroundBrush" Color="#1C1C1C"/>
                     <SolidColorBrush x:Key="TabHoverBrush" Color="#18FFFFFF"/>
                     <SolidColorBrush x:Key="TabBarBrush" Color="#252526"/>
+                    <SolidColorBrush x:Key="TabSelectedBrush" Color="#383838"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
@@ -103,7 +105,7 @@
             <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="CornerRadius" Value="0"/>
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="Transitions">
                 <Transitions>
@@ -121,13 +123,15 @@
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
         <Style Selector="Border.tabItem.selected">
-            <Setter Property="Background" Value="{DynamicResource PaneHeaderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource TabSelectedBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,3"/>
         </Style>
         <Style Selector="Border.tabItem:pointerover">
             <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
         </Style>
         <Style Selector="Border.tabItem.selected:pointerover">
-            <Setter Property="Background" Value="{DynamicResource PaneHeaderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource TabSelectedBrush}"/>
         </Style>
         <Style Selector="TextBlock.tabTitle">
             <Setter Property="FontSize" Value="12.5"/>
@@ -136,18 +140,23 @@
         </Style>
         <Style Selector="Border.tabItem.selected TextBlock.tabTitle">
             <Setter Property="Foreground" Value="{DynamicResource TabSelectedTextBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style Selector="Button.tabSelect, Button.tabClose, Button.tabAdd">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Height" Value="30"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Foreground" Value="{DynamicResource TabSelectedTextBrush}"/>
             <Setter Property="Template">
                 <ControlTemplate>
-                    <ContentPresenter Content="{TemplateBinding Content}"
-                                      ContentTemplate="{TemplateBinding ContentTemplate}"
-                                      Margin="{TemplateBinding Padding}"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"/>
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Border>
                 </ControlTemplate>
             </Setter>
         </Style>
@@ -156,9 +165,13 @@
             <Setter Property="MinWidth" Value="55"/>
         </Style>
         <Style Selector="Button.tabClose, Button.tabAdd">
-            <Setter Property="Width" Value="28"/>
+            <Setter Property="Width" Value="34"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="FontSize" Value="17"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="Button.tabClose:pointerover, Button.tabAdd:pointerover">
+            <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
         </Style>
 
         <!-- Ô địa chỉ -->

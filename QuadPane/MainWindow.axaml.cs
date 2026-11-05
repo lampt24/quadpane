@@ -36,6 +36,9 @@ public partial class MainWindow : Window
     public MainWindow(LayoutData layout)
     {
         InitializeComponent();
+        var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        Title = $"QuadPane v{version}";
+        VersionLabel.Text = $"v{version}";
         _layout = layout;
         _hookProc = GetMessageHook;
 
@@ -76,6 +79,30 @@ public partial class MainWindow : Window
             ApplyThemeToNative();
             HideDrawnTitle();
         }, DispatcherPriority.Background);
+#if !DEBUG
+        _ = CheckForUpdatesAsync();
+#endif
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        UpdateService.Release? release;
+        try { release = await UpdateService.GetNewReleaseAsync(); }
+        catch (Exception ex) { App.LogCrash(ex); return; }
+        if (release is null || !IsVisible || !UpdateService.Confirm(this, $"Đã có QuadPane {release.Tag}. Tải và cài đặt ngay?")) return;
+
+        try
+        {
+            StatusText.Text = $"Đang tải QuadPane {release.Tag}...";
+            await UpdateService.InstallAsync(release);
+            Close();
+        }
+        catch (Exception ex)
+        {
+            App.LogCrash(ex);
+            UpdateStatus();
+            UpdateService.ShowError(this, $"Không thể cập nhật QuadPane: {ex.Message}");
+        }
     }
 
     // ---- Panel đang hoạt động ----

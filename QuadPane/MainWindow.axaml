@@ -20,8 +20,14 @@
             <StackPanel Orientation="Horizontal" Spacing="10" Margin="16,0,16,0" VerticalAlignment="Center"
                         IsHitTestVisible="False">
                 <Image Source="/Assets/logo-256.png" Width="20" Height="20"/>
-                <TextBlock Text="QuadPane" FontWeight="Normal" FontSize="14" LetterSpacing="0"
-                           Foreground="{DynamicResource TitleTextBrush}" VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" Spacing="0" VerticalAlignment="Center">
+                    <TextBlock Text="QUAD" FontWeight="Bold" FontSize="14" LetterSpacing="1"
+                               Foreground="{DynamicResource TitleTextBrush}"/>
+                    <TextBlock Text="PANE" FontWeight="Bold" FontSize="14" LetterSpacing="1"
+                               Foreground="{DynamicResource AccentBrush}"/>
+                </StackPanel>
+                <TextBlock x:Name="VersionLabel" FontSize="11" VerticalAlignment="Center"
+                           Foreground="{DynamicResource StatusMutedTextBrush}"/>
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -50,8 +56,8 @@
         </Grid>
 
         <!-- ===== Lưới 4 panel với 2 splitter cắt nhau ===== -->
-        <Grid x:Name="PaneGrid" Grid.Row="1" Margin="10,8,10,0"
-              ColumnDefinitions="*,8,*" RowDefinitions="*,8,*">
+        <Grid x:Name="PaneGrid" Grid.Row="1" Margin="6,4,6,0"
+              ColumnDefinitions="*,6,*" RowDefinitions="*,6,*">
             <GridSplitter x:Name="VSplitter" Grid.Column="1" Grid.RowSpan="3"
                           ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" CornerRadius="3"/>
             <GridSplitter x:Name="HSplitter" Grid.Row="1" Grid.ColumnSpan="3"

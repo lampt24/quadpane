@@ -18,6 +18,8 @@ Workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml) ch�
 
 Mỗi release có gói ZIP tự chứa .NET cho Windows x64, ARM64 và x86, cùng file `SHA256SUMS.txt`. Tải đúng gói theo kiến trúc máy, giải nén rồi chạy `QuadPane.exe`; không cần cài .NET Runtime.
 
+Bản Release kiểm tra GitHub khi khởi động. Khi có version mới, ứng dụng hỏi trước khi tải; gói ZIP được kiểm tra SHA-256, cài sau khi cửa sổ đóng rồi tự mở lại. Cần quyền ghi vào thư mục cài đặt. Bản cũ được giữ trong thư mục `.QuadPane-backup-*` cạnh thư mục ứng dụng để có thể khôi phục thủ công nếu cần. Bản Debug không tự cập nhật.
+
 Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn trước khi push lên `main`. Thiếu file SDK sẽ làm workflow thất bại. GitHub Actions cần được bật cho repository và cho phép `GITHUB_TOKEN` tạo release (workflow đã khai báo `contents: write`).
 
 ## Giao diện
