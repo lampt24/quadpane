@@ -6,7 +6,7 @@ using QuadPane.Shell;
 namespace QuadPane;
 
 public sealed record SearchResult(string Name, string Directory, string FullPath, bool IsFolder,
-    DateTime? Modified, long? Size, string TypeName)
+    DateTime? Modified, long? Size)
 {
     public string Icon => IsFolder ? "\uE8B7" : "\uE8A5";
     public Bitmap? IconSource => ShellFileIcon.Get(FullPath, IsFolder);
@@ -28,7 +28,7 @@ public static class EverythingSearch
     internal static void SelfCheck()
     {
         var item = new SearchResult("readme.md", @"C:\work", @"C:\work\readme.md", false,
-            new DateTime(2026, 11, 5, 14, 15, 0), 7168, "Markdown file");
+            new DateTime(2026, 11, 5, 14, 15, 0), 7168);
         if (item.ModifiedText != "2026/11/05 14:15" || item.SizeText != "7 KB")
             throw new InvalidOperationException("Search metadata formatting failed.");
     }
@@ -83,35 +83,11 @@ public static class EverythingSearch
                     catch (ArgumentOutOfRangeException) { }
                 }
                 long? size = Native.GetResultSize(i, out long bytes) ? bytes : null;
-                results.Add(new SearchResult(name, directory, fullPath, isFolder, modified, size,
-                    GetTypeName(fullPath, isFolder)));
+                results.Add(new SearchResult(name, directory, fullPath, isFolder, modified, size));
             }
             return new SearchResponse(results, Native.GetTotResults());
         }
     }
-
-    private static string GetTypeName(string path, bool isFolder)
-    {
-        uint attributes = isFolder ? 0x10u : 0x80u;
-        if (SHGetFileInfo(path, attributes, out var info, (uint)Marshal.SizeOf<SHFILEINFO>(), 0x410) != IntPtr.Zero &&
-            !string.IsNullOrWhiteSpace(info.TypeName)) return info.TypeName;
-        return isFolder ? "File folder" : (Path.GetExtension(path).TrimStart('.') is { Length: > 0 } ext
-            ? $"{ext.ToUpperInvariant()} file" : "File");
-    }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct SHFILEINFO
-    {
-        public IntPtr Icon;
-        public int IconIndex;
-        public uint Attributes;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string DisplayName;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)] public string TypeName;
-    }
-
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr SHGetFileInfo(string path, uint attributes, out SHFILEINFO info,
-        uint infoSize, uint flags);
 
     private static class Native
     {

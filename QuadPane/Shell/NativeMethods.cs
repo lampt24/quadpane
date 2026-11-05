@@ -130,6 +130,22 @@ internal struct MSG
     public int ptY;
 }
 
+[StructLayout(LayoutKind.Sequential)]
+internal struct CWPSTRUCT
+{
+    public IntPtr lParam;
+    public IntPtr wParam;
+    public uint message;
+    public IntPtr hwnd;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct POINT
+{
+    public int X;
+    public int Y;
+}
+
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
 internal struct WNDCLASSEX
 {
@@ -194,8 +210,10 @@ internal static class NativeMethods
     public const uint WM_XBUTTONDOWN = 0x020B;
     public const uint WM_XBUTTONUP = 0x020C;
     public const uint WM_XBUTTONDBLCLK = 0x020D;
+    public const uint WM_APPCOMMAND = 0x0319;
 
     public const int WH_GETMESSAGE = 3;
+    public const int WH_CALLWNDPROC = 4;
     public const int PM_REMOVE = 1;
 
     public const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12;
@@ -219,6 +237,13 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool IsChild(IntPtr parent, IntPtr child);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetCursorPos(out POINT point);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr WindowFromPoint(POINT point);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

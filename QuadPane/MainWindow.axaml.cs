@@ -39,7 +39,9 @@ public partial class MainWindow : Window
     // Hook message của thread UI: phím/chuột trong cửa sổ Win32 của Explorer
     // không đi qua hệ thống input của Avalonia, nên phải bắt ở mức Win32.
     private readonly HookProcDelegate _hookProc;
+    private readonly HookProcDelegate _sentMessageHookProc;
     private IntPtr _hook;
+    private IntPtr _sentMessageHook;
 
     // Vị trí ô lưới của từng panel: 0 trên-trái, 1 trên-phải, 2 dưới-trái, 3 dưới-phải
     private static readonly (int Row, int Col)[] Cells = [(0, 0), (0, 2), (2, 0), (2, 2)];
@@ -64,6 +66,7 @@ public partial class MainWindow : Window
         _startupSettingReady = true;
         _layout = layout;
         _hookProc = GetMessageHook;
+        _sentMessageHookProc = SentMessageHook;
 
         for (int i = 0; i < 4; i++)
         {
@@ -105,6 +108,8 @@ public partial class MainWindow : Window
     {
         if (_hook == IntPtr.Zero)
             _hook = SetWindowsHookEx(WH_GETMESSAGE, _hookProc, IntPtr.Zero, GetCurrentThreadId());
+        if (_sentMessageHook == IntPtr.Zero)
+            _sentMessageHook = SetWindowsHookEx(WH_CALLWNDPROC, _sentMessageHookProc, IntPtr.Zero, GetCurrentThreadId());
         // HWND của cửa sổ chưa chắc sẵn sàng ngay trong Opened: dời sang lượt dispatcher sau
         Dispatcher.UIThread.Post(() =>
         {
@@ -566,6 +571,47 @@ public partial class MainWindow : Window
         return CallNextHookEx(_hook, code, wParam, lParam);
     }
 
+    // Một số chuột/driver gửi Back/Forward bằng WM_APPCOMMAND đồng bộ thay vì WM_XBUTTON.
+    // WH_GETMESSAGE không thấy message gửi bằng SendMessage, nên bắt khi nó tới cửa sổ chính.
+    private IntPtr SentMessageHook(int code, IntPtr wParam, IntPtr lParam)
+    {
+        if (code >= 0)
+        {
+            try
+            {
+                var message = Marshal.PtrToStructure<CWPSTRUCT>(lParam);
+                if (message.message == WM_APPCOMMAND && message.hwnd == TryGetPlatformHandle()?.Handle)
+                {
+                    var navigation = MapAppCommand(message.lParam);
+                    if (navigation != Shortcut.None)
+                    {
+                        var pane = PaneUnderMouse() ?? _active;
+                        Dispatcher.UIThread.Post(() => NavigateWithMouse(pane, navigation));
+                    }
+                }
+            }
+            catch (Exception ex) { App.LogCrash(ex); }
+        }
+        return CallNextHookEx(_sentMessageHook, code, wParam, lParam);
+    }
+
+    private PaneView? PaneUnderMouse()
+    {
+        if (!GetCursorPos(out var cursor)) return null;
+        var hwnd = WindowFromPoint(cursor);
+        var nativePane = _panes.FirstOrDefault(p => p.Owns(hwnd));
+        if (nativePane is not null) return nativePane;
+        var visual = this.InputHitTest(this.PointToClient(new PixelPoint(cursor.X, cursor.Y))) as Visual;
+        return visual?.FindAncestorOfType<PaneView>(includeSelf: true);
+    }
+
+    private void NavigateWithMouse(PaneView pane, Shortcut navigation)
+    {
+        SetActive(pane);
+        if (navigation == Shortcut.Back) pane.GoBack();
+        else pane.GoForward();
+    }
+
     /// <summary>Trả về true nếu message đã được xử lý và không nên dispatch tiếp.</summary>
     private bool FilterNativeMessage(ref MSG msg)
     {
@@ -583,12 +629,7 @@ public partial class MainWindow : Window
         {
             var navigation = MapXButton(msg.wParam);
             if (navigation == Shortcut.None) return false;
-            if (m == WM_XBUTTONDOWN) Dispatcher.UIThread.Post(() =>
-            {
-                SetActive(pane);
-                if (navigation == Shortcut.Back) pane.GoBack();
-                else pane.GoForward();
-            });
+            if (m == WM_XBUTTONDOWN) Dispatcher.UIThread.Post(() => NavigateWithMouse(pane, navigation));
             return true;
         }
 
@@ -616,11 +657,22 @@ public partial class MainWindow : Window
         _ => Shortcut.None,
     };
 
+    private static Shortcut MapAppCommand(IntPtr lParam) => ((lParam.ToInt64() >> 16) & 0x0FFF) switch
+    {
+        1 => Shortcut.Back,
+        2 => Shortcut.Forward,
+        _ => Shortcut.None,
+    };
+
     internal static void SelfCheckMouseNavigation()
     {
         if (MapXButton((IntPtr)0x10000) != Shortcut.Back ||
             MapXButton((IntPtr)0x20000) != Shortcut.Forward ||
-            MapXButton(IntPtr.Zero) != Shortcut.None)
+            MapXButton(IntPtr.Zero) != Shortcut.None ||
+            MapAppCommand((IntPtr)0x10000) != Shortcut.Back ||
+            MapAppCommand((IntPtr)0x20000) != Shortcut.Forward ||
+            MapAppCommand(unchecked((IntPtr)0x80010000u)) != Shortcut.Back ||
+            MapAppCommand(IntPtr.Zero) != Shortcut.None)
             throw new Exception("Mouse navigation mapping failed.");
     }
 
@@ -722,6 +774,7 @@ public partial class MainWindow : Window
         _statusTimer.Stop();
         _gitRefresh?.Cancel();
         if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
+        if (_sentMessageHook != IntPtr.Zero) { UnhookWindowsHookEx(_sentMessageHook); _sentMessageHook = IntPtr.Zero; }
         if (UsesBothSplitters(_mode)) RememberRatios();
 
         _layout.Mode = _mode;

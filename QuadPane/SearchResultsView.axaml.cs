@@ -10,7 +10,12 @@ namespace QuadPane;
 
 public partial class SearchResultsView : UserControl
 {
+    private enum SortColumn { Name, Modified, Directory, Size }
+
     private CancellationTokenSource? _searchCancellation;
+    private IReadOnlyList<SearchResult> _results = [];
+    private SortColumn? _sortColumn;
+    private bool _sortAscending = true;
     public string Query { get; private set; } = "";
     public int ResultCount => ResultsList.ItemCount;
     public string? SelectedPath => (ResultsList.SelectedItem as SearchResult)?.FullPath;
@@ -29,6 +34,7 @@ public partial class SearchResultsView : UserControl
         using var cancellation = new CancellationTokenSource();
         _searchCancellation = cancellation;
         Query = query.Trim();
+        _results = [];
         ResultsList.ItemsSource = null;
         ResultsChanged?.Invoke();
         if (Query.Length == 0)
@@ -43,7 +49,8 @@ public partial class SearchResultsView : UserControl
             await Task.Delay(250, cancellation.Token);
             var response = await Task.Run(() => EverythingSearch.Search(Query), cancellation.Token);
             if (cancellation.IsCancellationRequested) return;
-            ResultsList.ItemsSource = response.Results;
+            _results = response.Results;
+            ApplySort();
             ResultsChanged?.Invoke();
             ResultStatus.Text = response.Total == 0 ? "Không có kết quả."
                 : $"Hiển thị {response.Results.Count:N0} / {response.Total:N0} kết quả đầu tiên.";
@@ -61,6 +68,47 @@ public partial class SearchResultsView : UserControl
     }
 
     public void Stop() => _searchCancellation?.Cancel();
+
+    private void Header_Click(object? sender, RoutedEventArgs e)
+    {
+        var column = sender == NameHeader ? SortColumn.Name
+            : sender == ModifiedHeader ? SortColumn.Modified
+            : sender == DirectoryHeader ? SortColumn.Directory
+            : SortColumn.Size;
+        _sortAscending = _sortColumn != column || !_sortAscending;
+        _sortColumn = column;
+        NameHeader.Content = column == SortColumn.Name ? SortLabel("Name") : "Name";
+        ModifiedHeader.Content = column == SortColumn.Modified ? SortLabel("Date modified") : "Date modified";
+        DirectoryHeader.Content = column == SortColumn.Directory ? SortLabel("Directory") : "Directory";
+        SizeHeader.Content = column == SortColumn.Size ? SortLabel("Size") : "Size";
+        ApplySort();
+    }
+
+    private string SortLabel(string label) => $"{label} {(_sortAscending ? "▲" : "▼")}";
+
+    private void ApplySort()
+    {
+        if (_sortColumn is null) { ResultsList.ItemsSource = _results; return; }
+        var selected = ResultsList.SelectedItem;
+        IOrderedEnumerable<SearchResult> sorted = _sortColumn switch
+        {
+            SortColumn.Name => _sortAscending
+                ? _results.OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                : _results.OrderByDescending(item => item.Name, StringComparer.OrdinalIgnoreCase),
+            SortColumn.Modified => _sortAscending
+                ? _results.OrderBy(item => item.Modified)
+                : _results.OrderByDescending(item => item.Modified),
+            SortColumn.Directory => _sortAscending
+                ? _results.OrderBy(item => item.Directory, StringComparer.OrdinalIgnoreCase)
+                : _results.OrderByDescending(item => item.Directory, StringComparer.OrdinalIgnoreCase),
+            _ => _sortAscending
+                ? _results.OrderBy(item => item.Size)
+                : _results.OrderByDescending(item => item.Size),
+        };
+        ResultsList.ItemsSource = sorted.ThenBy(item => item.FullPath, StringComparer.OrdinalIgnoreCase).ToList();
+        if (selected is SearchResult) ResultsList.SelectedItem = selected;
+    }
+
     public void FocusResults()
     {
         if (ResultsList.ItemCount > 0 && ResultsList.SelectedIndex < 0) ResultsList.SelectedIndex = 0;
