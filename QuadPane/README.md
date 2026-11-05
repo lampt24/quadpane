@@ -37,6 +37,7 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 - `Assets/QuadPane.ico`: icon cho exe, cửa sổ và taskbar, gồm các cỡ 16–256 px.
 - `Assets/logo-256.png`: bản PNG của logo.
 - Logo trên header dùng cùng ảnh PNG, ở kích thước 20 px.
+- Icon Claude và OpenAI dùng hình từ Simple Icons; icon VS Code dùng logo từ Wikimedia Commons. Tên công cụ vẫn hiện trong tooltip của từng nút.
 - Sau khi sửa thiết kế, tạo lại icon bằng lệnh `dotnet run --file tools/make-icon.cs`. Lệnh này cũng xuất `tools/icon-preview.png` để xem trước mọi kích thước.
 
 ## Kiến trúc

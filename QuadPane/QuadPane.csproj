@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>QuadPane</RootNamespace>
     <AssemblyName>QuadPane</AssemblyName>
-    <Version>0.0.5</Version>
+    <Version>0.0.6</Version>
     <!-- Tránh file trung gian cũ bị khóa bởi phần mềm bảo vệ khi build lại. -->
     <IntermediateOutputPath>obj\$(Configuration)\$(TargetFramework)\generated\</IntermediateOutputPath>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -18,7 +18,7 @@
   <ItemGroup>
     <!-- Icon/logo nhúng vào app (avares://QuadPane/Assets/...) -->
     <AvaloniaResource Include="Assets\QuadPane.ico" />
-    <AvaloniaResource Include="Assets\logo-256.png" />
+    <AvaloniaResource Include="Assets\*.png" />
     <Content Include="Assets\EverythingSdk\*.dll" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Assets\EverythingSdk\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Updater.ps1" CopyToOutputDirectory="PreserveNewest" />
