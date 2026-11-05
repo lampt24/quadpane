@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>QuadPane</RootNamespace>
     <AssemblyName>QuadPane</AssemblyName>
-    <Version>0.0.7</Version>
+    <Version>0.0.8</Version>
     <!-- Tránh file trung gian cũ bị khóa bởi phần mềm bảo vệ khi build lại. -->
     <IntermediateOutputPath>obj\$(Configuration)\$(TargetFramework)\generated\</IntermediateOutputPath>
     <ApplicationManifest>app.manifest</ApplicationManifest>

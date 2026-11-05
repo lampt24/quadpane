@@ -291,7 +291,8 @@ public partial class PaneView : UserControl
         {
             var clipboard = TopLevel.GetTopLevel(this)?.Clipboard
                 ?? throw new InvalidOperationException("Không thể truy cập clipboard.");
-            await clipboard.SetTextAsync(FolderPath());
+            var paths = Host.SelectedPaths();
+            await clipboard.SetTextAsync(paths.Count > 0 ? string.Join(Environment.NewLine, paths) : FolderPath());
         }
         catch (Exception ex) { ShowActionError(ex.Message); }
     }

@@ -18,7 +18,7 @@ Workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml) ch�
 
 Mỗi release có bộ cài `QuadPane-v0.0.N-win-x64-setup.exe`, gói ZIP tự chứa .NET cho Windows x64, ARM64 và x86, cùng file `SHA256SUMS.txt`. Bộ cài đặt mặc định vào `%LocalAppData%\Programs\QuadPane` và tạo lối tắt trong Start Menu. Với gói ZIP, tải đúng kiến trúc, giải nén vào thư mục riêng rồi chạy `QuadPane.exe`; không cần cài .NET Runtime.
 
-Bản Release kiểm tra GitHub khi khởi động. Khi có version mới, ứng dụng hỏi trước khi tải; gói ZIP được kiểm tra SHA-256, cài sau khi cửa sổ đóng rồi tự mở lại. Cần quyền ghi vào thư mục cài đặt. Bản cũ được giữ trong thư mục `.QuadPane-backup-*` cạnh thư mục ứng dụng để có thể khôi phục thủ công nếu cần. Bản Debug không tự cập nhật.
+Bản Release kiểm tra GitHub khi khởi động và mỗi 2 phút. Khi có version mới, nút cập nhật hiện trên thanh trạng thái; bấm nút để xác nhận tải và cài. Gói ZIP được kiểm tra SHA-256, cài sau khi app thoát rồi tự mở lại. Cần quyền ghi vào thư mục cài đặt. Bản cũ được giữ trong thư mục `.QuadPane-backup-*` cạnh thư mục ứng dụng để có thể khôi phục thủ công nếu cần. Bản Debug không tự cập nhật.
 
 Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn trước khi push lên `main`. Thiếu file SDK sẽ làm workflow thất bại. GitHub Actions cần được bật cho repository và cho phép `GITHUB_TOKEN` tạo release (workflow đã khai báo `contents: write`).
 
@@ -28,7 +28,8 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 - Nền Mica trên Windows 11; các máy không hỗ trợ dùng màu nền thay thế.
 - Panel đang hoạt động có viền màu nhấn (accent).
 - Mỗi panel có dải tab riêng. Tab mới mở tại `C:\`. Mỗi tab giữ Explorer Browser và lịch sử điều hướng riêng trong phiên chạy; các thư mục và tab đang chọn được khôi phục ở lần mở sau.
-- Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn. Claude/Codex mở trong Windows Terminal nếu có, nếu không dùng PowerShell. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt trên thanh tiêu đề có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
+- Nút đóng cửa sổ ẩn QuadPane xuống khay hệ thống. Nhấp icon khay hoặc mở QuadPane lần nữa để hiện cửa sổ cũ; chọn **Thoát** trong menu icon khay để đóng hẳn app.
+- Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn mục đang chọn (nhiều mục: mỗi đường dẫn một dòng; không chọn: thư mục đang mở). Claude/Codex mở trong Windows Terminal nếu có, nếu không dùng PowerShell. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt trên thanh tiêu đề có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
 - Theme đổi theo vòng: **Theo hệ thống → Sáng → Tối**. Phần Explorer nhúng (danh sách file, header cột, cây thư mục, menu chuột phải) và khung cửa sổ đổi màu theo.
 
 ## Logo & icon

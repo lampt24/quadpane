@@ -21,8 +21,8 @@
                                 ToolTip.Tip="Mở VS Code tại thư mục này" Click="VSCode_Click">
                             <Image Source="/Assets/vscode.png" Width="18" Height="18"/>
                         </Button>
-                        <Button Classes="tabAction copyPath" Content="&#xE8C8;" AutomationProperties.Name="Sao chép đường dẫn"
-                                ToolTip.Tip="Sao chép đường dẫn" Click="CopyPath_Click"/>
+                        <Button Classes="tabAction copyPath" Content="&#xE8C8;" AutomationProperties.Name="Sao chép đường dẫn mục được chọn"
+                                ToolTip.Tip="Sao chép đường dẫn mục chọn; nếu không chọn, sao chép thư mục đang mở" Click="CopyPath_Click"/>
                     </StackPanel>
                     <ScrollViewer Margin="6,4,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                         <StackPanel x:Name="TabStrip" Orientation="Horizontal" Spacing="3">

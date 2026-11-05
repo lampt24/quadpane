@@ -183,6 +183,57 @@ public sealed class ExplorerHost : NativeControlHost
 
     public void RefreshView() => WithShellView(v => v.Refresh());
 
+    /// <summary>Đường dẫn file/thư mục đang chọn; rỗng khi không chọn gì.</summary>
+    public IReadOnlyList<string> SelectedPaths()
+    {
+        if (_browser == null) return [];
+        var viewId = IID_IFolderView;
+        if (_browser.GetCurrentView(ref viewId, out var viewPtr) != 0 || viewPtr == IntPtr.Zero) return [];
+        try
+        {
+            var view = (IFolderView)Marshal.GetObjectForIUnknown(viewPtr);
+            try
+            {
+                Marshal.ThrowExceptionForHR(view.ItemCount(SVGIO_SELECTION, out var count));
+                if (count == 0) return [];
+                if (_currentPidl == IntPtr.Zero) throw new InvalidOperationException("Chưa xác định được thư mục hiện tại.");
+
+                var enumId = IID_IEnumIDList;
+                Marshal.ThrowExceptionForHR(view.Items(SVGIO_SELECTION, ref enumId, out var enumPtr));
+                try
+                {
+                    var items = (IEnumIDList)Marshal.GetObjectForIUnknown(enumPtr);
+                    try
+                    {
+                        var paths = new List<string>(count);
+                        for (int i = 0; i < count; i++)
+                        {
+                            Marshal.ThrowExceptionForHR(items.Next(1, out var child, out var fetched));
+                            if (fetched != 1) throw new InvalidOperationException("Không đọc được mục đang chọn.");
+                            try
+                            {
+                                var full = ILCombine(_currentPidl, child);
+                                if (full == IntPtr.Zero) throw new OutOfMemoryException();
+                                try
+                                {
+                                    paths.Add(GetName(full, SIGDN_FILESYSPATH)
+                                        ?? throw new InvalidOperationException("Mục được chọn không có đường dẫn file."));
+                                }
+                                finally { ILFree(full); }
+                            }
+                            finally { ILFree(child); }
+                        }
+                        return paths;
+                    }
+                    finally { Marshal.ReleaseComObject(items); }
+                }
+                finally { Marshal.Release(enumPtr); }
+            }
+            finally { Marshal.ReleaseComObject(view); }
+        }
+        finally { Marshal.Release(viewPtr); }
+    }
+
     /// <summary>Đưa focus bàn phím vào danh sách file của panel.</summary>
     public void FocusView() => WithShellView(v => v.UIActivate(SVUIA_ACTIVATE_FOCUS));
 
@@ -241,10 +292,11 @@ public sealed class ExplorerHost : NativeControlHost
         public int QueryService(ref Guid service, ref Guid iid, out IntPtr result)
         {
             result = IntPtr.Zero;
-            if (service != IID_IExplorerPaneVisibility || iid != IID_IExplorerPaneVisibility)
+            if (service != IID_IExplorerPaneVisibility)
                 return unchecked((int)0x80004002); // E_NOINTERFACE
-            result = Marshal.GetComInterfaceForObject(this, typeof(IExplorerPaneVisibility));
-            return 0;
+            var unknown = Marshal.GetIUnknownForObject(this);
+            try { return Marshal.QueryInterface(unknown, in iid, out result); }
+            finally { Marshal.Release(unknown); }
         }
 
         public int GetPaneState(ref Guid pane, out uint state)

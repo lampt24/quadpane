@@ -26,7 +26,9 @@ internal static class UpdateService
     internal static async Task<Release?> GetNewReleaseAsync()
     {
         if (!OperatingSystem.IsWindows()) return null;
-        var release = await Client.GetFromJsonAsync<Release>($"https://api.github.com/repos/{Repo}/releases/latest");
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var release = await Client.GetFromJsonAsync<Release>(
+            $"https://api.github.com/repos/{Repo}/releases/latest", timeout.Token);
         if (release is null || !Version.TryParse(release.Tag.TrimStart('v'), out var latest)
             || release.Tag != $"v{latest.ToString(3)}") return null;
         var current = typeof(UpdateService).Assembly.GetName().Version ?? new Version(0, 0, 0);

@@ -20,6 +20,10 @@ public partial class MainWindow : Window
     private PaneView _active;
     private LayoutMode _mode;
     private SearchWindow? _searchWindow;
+    private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromMinutes(2) };
+    private UpdateService.Release? _availableRelease;
+    private bool _checkingUpdate;
+    private bool _installingUpdate;
     private bool _startupSettingReady;
     private const string StartupRegistryKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
@@ -76,13 +80,15 @@ public partial class MainWindow : Window
         TitleBar.PointerPressed += TitleBar_PointerPressed;
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
         ActualThemeVariantChanged += (_, _) => ApplyThemeToNative();
+        _updateTimer.Tick += (_, _) => _ = CheckForUpdatesAsync();
         Opened += OnOpened;
         Closing += OnClosing;
     }
 
     private void OnOpened(object? sender, EventArgs e)
     {
-        _hook = SetWindowsHookEx(WH_GETMESSAGE, _hookProc, IntPtr.Zero, GetCurrentThreadId());
+        if (_hook == IntPtr.Zero)
+            _hook = SetWindowsHookEx(WH_GETMESSAGE, _hookProc, IntPtr.Zero, GetCurrentThreadId());
         // HWND của cửa sổ chưa chắc sẵn sàng ngay trong Opened: dời sang lượt dispatcher sau
         Dispatcher.UIThread.Post(() =>
         {
@@ -90,21 +96,42 @@ public partial class MainWindow : Window
             HideDrawnTitle();
         }, DispatcherPriority.Background);
 #if !DEBUG
+        _updateTimer.Start();
         _ = CheckForUpdatesAsync();
 #endif
     }
 
     private async Task CheckForUpdatesAsync()
     {
-        UpdateService.Release? release;
-        try { release = await UpdateService.GetNewReleaseAsync(); }
-        catch (Exception ex) { App.LogCrash(ex); return; }
-        if (release is null || !IsVisible || !UpdateService.Confirm(this, $"Đã có QuadPane {release.Tag}. Tải và cài đặt ngay?")) return;
+        if (_checkingUpdate || _installingUpdate || App.IsExiting) return;
+        _checkingUpdate = true;
+        try
+        {
+            var release = await UpdateService.GetNewReleaseAsync();
+            if (App.IsExiting) return;
+            _availableRelease = release;
+            UpdateButton.IsVisible = release is not null;
+            if (release is not null) UpdateButton.Content = $"Cập nhật {release.Tag}";
+        }
+        catch (HttpRequestException) { }
+        catch (TaskCanceledException) { }
+        catch (Exception ex) { App.LogCrash(ex); }
+        finally { _checkingUpdate = false; }
+    }
 
+    private async void UpdateButton_Click(object? sender, RoutedEventArgs e)
+    {
+        var release = _availableRelease;
+        if (release is null || _installingUpdate ||
+            !UpdateService.Confirm(this, $"Tải và cài QuadPane {release.Tag}?")) return;
+
+        _installingUpdate = true;
+        UpdateButton.IsEnabled = false;
         try
         {
             StatusText.Text = $"Đang tải QuadPane {release.Tag}...";
             await UpdateService.InstallAsync(release);
+            App.RequestExit();
             Close();
         }
         catch (Exception ex)
@@ -112,6 +139,8 @@ public partial class MainWindow : Window
             App.LogCrash(ex);
             UpdateStatus();
             UpdateService.ShowError(this, $"Không thể cập nhật QuadPane: {ex.Message}");
+            UpdateButton.IsEnabled = true;
+            _installingUpdate = false;
         }
     }
 
@@ -474,6 +503,13 @@ public partial class MainWindow : Window
 
     private void OnClosing(object? sender, WindowClosingEventArgs e)
     {
+        if (!App.IsExiting)
+        {
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+        _updateTimer.Stop();
         if (_hook != IntPtr.Zero) { UnhookWindowsHookEx(_hook); _hook = IntPtr.Zero; }
         if (UsesBothSplitters(_mode)) RememberRatios();
 

@@ -1,5 +1,6 @@
 using System.IO;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
@@ -10,6 +11,7 @@ namespace QuadPane;
 public partial class App : Application
 {
     private static readonly string CrashLog = Path.Combine(Path.GetTempPath(), "QuadPane-crash.log");
+    public static bool IsExiting { get; private set; }
 
     public override void Initialize()
     {
@@ -26,6 +28,8 @@ public partial class App : Application
             var layout = LayoutStore.Load();
             ApplyThemeMode(layout.Theme);
             desktop.MainWindow = new MainWindow(layout);
+            desktop.ShutdownRequested += (_, _) => IsExiting = true;
+            Program.StartActivationServer();
         }
         base.OnFrameworkInitializationCompleted();
     }
@@ -46,4 +50,24 @@ public partial class App : Application
     {
         try { File.AppendAllText(CrashLog, $"[{DateTime.Now:O}] {ex}\n\n"); } catch { }
     }
+
+    public static void RequestExit() => IsExiting = true;
+
+    private void ShowMainWindow()
+    {
+        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } window }) return;
+        if (!window.IsVisible) window.Show();
+        if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+        window.Activate();
+    }
+
+    private void TrayIcon_Clicked(object? sender, EventArgs e) => ShowMainWindow();
+    private void TrayOpen_Clicked(object? sender, EventArgs e) => ShowMainWindow();
+    private void TrayExit_Clicked(object? sender, EventArgs e)
+    {
+        RequestExit();
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) desktop.Shutdown();
+    }
+
+    internal static void ActivateExisting() => (Current as App)?.ShowMainWindow();
 }

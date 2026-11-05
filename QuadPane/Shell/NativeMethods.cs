@@ -73,6 +73,23 @@ internal interface IShellView
     [PreserveSig] int Refresh();
 }
 
+[ComImport, Guid("cde725b0-ccc9-4519-917e-325d72fab4ce"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IFolderView
+{
+    [PreserveSig] int GetCurrentViewMode(out uint mode);
+    [PreserveSig] int SetCurrentViewMode(uint mode);
+    [PreserveSig] int GetFolder(ref Guid iid, out IntPtr result);
+    [PreserveSig] int Item(int index, out IntPtr pidl);
+    [PreserveSig] int ItemCount(uint flags, out int count);
+    [PreserveSig] int Items(uint flags, ref Guid iid, out IntPtr result);
+}
+
+[ComImport, Guid("000214f2-0000-0000-c000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IEnumIDList
+{
+    [PreserveSig] int Next(uint count, out IntPtr pidl, out uint fetched);
+}
+
 [Flags]
 internal enum ExplorerBrowserOptions : uint
 {
@@ -138,6 +155,8 @@ internal static class NativeMethods
 {
     public static readonly Guid CLSID_ExplorerBrowser = new("71f96385-ddd6-48d3-a0c1-ae06e8b055fb");
     public static readonly Guid IID_IShellView = new("000214e3-0000-0000-c000-000000000046");
+    public static readonly Guid IID_IFolderView = new("cde725b0-ccc9-4519-917e-325d72fab4ce");
+    public static readonly Guid IID_IEnumIDList = new("000214f2-0000-0000-c000-000000000046");
     public static readonly Guid IID_IExplorerPaneVisibility = new("e07010ec-bc17-44c0-97b0-46c7c95b9edc");
     public static readonly Guid EP_NavPane = new("cb316b22-25f7-42b8-8a09-540d23a43c2f");
 
@@ -150,11 +169,13 @@ internal static class NativeMethods
     public const uint SBSP_NAVIGATEFORWARD = 0x8000;
 
     public const uint SVUIA_ACTIVATE_FOCUS = 2;
+    public const uint SVGIO_SELECTION = 1;
 
     // SIGDN
     public const uint SIGDN_NORMALDISPLAY = 0x00000000;
     public const uint SIGDN_DESKTOPABSOLUTEPARSING = 0x80028000;
     public const uint SIGDN_DESKTOPABSOLUTEEDITING = 0x8004c000;
+    public const uint SIGDN_FILESYSPATH = 0x80058000;
 
     public const int WS_CHILD = 0x40000000;
     public const int WS_VISIBLE = 0x10000000;
@@ -255,6 +276,9 @@ internal static class NativeMethods
 
     [DllImport("shell32.dll")]
     public static extern IntPtr ILClone(IntPtr pidl);
+
+    [DllImport("shell32.dll")]
+    public static extern IntPtr ILCombine(IntPtr parent, IntPtr child);
 
     [DllImport("shell32.dll")]
     public static extern void ILFree(IntPtr pidl);
