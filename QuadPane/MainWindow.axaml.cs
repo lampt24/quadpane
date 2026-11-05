@@ -397,9 +397,6 @@ public partial class MainWindow : Window
         TripleMode.IsChecked = _mode == LayoutMode.Triple;
         DualMode.IsChecked = _mode == LayoutMode.Dual;
         SingleMode.IsChecked = _mode == LayoutMode.Single;
-        foreach (var button in new[] { QuadMode, TripleMode, DualMode, SingleMode })
-            if (button.Content is Avalonia.Controls.Shapes.Path icon)
-                icon.Classes.Set("selected", button.IsChecked == true);
 
         // 3 khung: panel 1 chiếm cả cột trái, panel 2 và 3 xếp chồng ở cột phải
         // (panel 3 được dời sang ô dưới-phải để Ctrl+1..3 vẫn liền mạch).

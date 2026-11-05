@@ -100,33 +100,41 @@
                                 VerticalAlignment="Center">
                     <Button Classes="gitAction" ToolTip.Tip="Git fetch"
                             AutomationProperties.Name="Git fetch" Click="GitFetch_Click">
-                        <Path Classes="gitIcon" Data="M20 11a8 8 0 0 0-14-5 M4 4v5h5 M4 13a8 8 0 0 0 14 5 M20 20v-5h-5"/>
+                        <Viewbox Width="14" Height="14">
+                            <Path Classes="gitIcon" Data="M20 11a8 8 0 0 0-14-5 M4 4v5h5 M4 13a8 8 0 0 0 14 5 M20 20v-5h-5"/>
+                        </Viewbox>
                     </Button>
                     <Button Classes="gitAction" ToolTip.Tip="Git pull (fast-forward only)"
                             AutomationProperties.Name="Git pull" Click="GitPull_Click">
-                        <Path Classes="gitIcon" Data="M12 3v12 M7 10l5 5 5-5 M4 18v3h16v-3"/>
+                        <Viewbox Width="14" Height="14">
+                            <Path Classes="gitIcon" Data="M12 3v12 M7 10l5 5 5-5 M4 18v3h16v-3"/>
+                        </Viewbox>
                     </Button>
                     <Button Classes="gitAction" ToolTip.Tip="Git push"
                             AutomationProperties.Name="Git push" Click="GitPush_Click">
-                        <Path Classes="gitIcon" Data="M12 15V3 M7 8l5-5 5 5 M4 18v3h16v-3"/>
+                        <Viewbox Width="14" Height="14">
+                            <Path Classes="gitIcon" Data="M12 15V3 M7 8l5-5 5 5 M4 18v3h16v-3"/>
+                        </Viewbox>
                     </Button>
                     <Button x:Name="GitLogButton" Classes="gitAction" IsVisible="False"
                             ToolTip.Tip="Mở Git log bằng TortoiseGit"
                             AutomationProperties.Name="Xem Git log" Click="GitLog_Click">
-                        <Path Classes="gitIcon" Data="M3 9a9 9 0 1 1 0 6 M3 3v6h6 M12 7v5l3 2"/>
+                        <Viewbox Width="14" Height="14">
+                            <Path Classes="gitIcon" Data="M3 9a9 9 0 1 1 0 6 M3 3v6h6 M12 7v5l3 2"/>
+                        </Viewbox>
                     </Button>
                     </StackPanel>
-                    <Path Grid.Column="1" Classes="gitIcon" Width="14" Height="14" VerticalAlignment="Center"
-                          RenderTransform="translate(0px, 6px)"
-                          Stroke="{DynamicResource StatusMutedTextBrush}"
-                          Data="M2 12h6 M16 12h6 M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8"/>
+                    <Viewbox Grid.Column="1" Width="14" Height="14" VerticalAlignment="Center">
+                        <Path Classes="gitIcon" Stroke="{DynamicResource StatusMutedTextBrush}"
+                              Data="M2 12h6 M16 12h6 M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8"/>
+                    </Viewbox>
                     <TextBlock x:Name="GitCountText" Grid.Column="2" VerticalAlignment="Center" FontSize="11"
                                ToolTip.Tip="Số file đã stage / số file chưa stage, gồm file mới"
                                Foreground="{DynamicResource StatusTextBrush}"/>
-                    <Path Grid.Column="3" Classes="gitIcon" Width="14" Height="14" Margin="7,0,0,0" VerticalAlignment="Center"
-                          RenderTransform="translate(0px, 6px)"
-                          Stroke="{DynamicResource StatusMutedTextBrush}"
-                          Data="M6 6v12 M6 6a9 9 0 0 0 9 9 M6 0a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M6 18a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M18 12a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/>
+                    <Viewbox Grid.Column="3" Width="14" Height="14" Margin="7,0,0,0" VerticalAlignment="Center">
+                        <Path Classes="gitIcon" Stroke="{DynamicResource StatusMutedTextBrush}"
+                              Data="M6 6v12 M6 6a9 9 0 0 0 9 9 M6 0a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M6 18a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M18 12a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/>
+                    </Viewbox>
                     <Viewbox Grid.Column="4" MaxWidth="320" Stretch="Uniform" StretchDirection="DownOnly"
                              VerticalAlignment="Center">
                         <TextBlock x:Name="GitBranchText" FontSize="11" TextWrapping="NoWrap"

@@ -33,7 +33,6 @@
                     <SolidColorBrush x:Key="TabHoverBrush" Color="#0A000000"/>
                     <SolidColorBrush x:Key="TabBarBrush" Color="#EAEAEA"/>
                     <SolidColorBrush x:Key="TabSelectedBrush" Color="#FFFFFF"/>
-                    <SolidColorBrush x:Key="SelectedIconForegroundBrush" Color="#FFFFFF"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="WindowFallbackBrush" Color="#191919"/>
@@ -60,7 +59,6 @@
                     <SolidColorBrush x:Key="TabHoverBrush" Color="#18FFFFFF"/>
                     <SolidColorBrush x:Key="TabBarBrush" Color="#252526"/>
                     <SolidColorBrush x:Key="TabSelectedBrush" Color="#383838"/>
-                    <SolidColorBrush x:Key="SelectedIconForegroundBrush" Color="#FFFFFF"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
@@ -84,8 +82,8 @@
             <Setter Property="Focusable" Value="False"/>
         </Style>
         <Style Selector="ToggleButton.icon:checked, ToggleButton.icon:checked:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource SelectedIconForegroundBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource TabSelectedBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TitleTextBrush}"/>
         </Style>
 
         <!-- Nút trong nhóm chọn bố cục (segmented control) -->
@@ -103,8 +101,21 @@
             <Setter Property="Focusable" Value="False"/>
         </Style>
         <Style Selector="ToggleButton.segment:checked, ToggleButton.segment:checked:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource SelectedIconForegroundBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource TabSelectedBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TitleTextBrush}"/>
+        </Style>
+        <Style Selector="ToggleButton.icon, ToggleButton.segment">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ToggleButton.icon:pointerover:not(:checked), ToggleButton.segment:pointerover:not(:checked)">
+            <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
         </Style>
 
         <Style Selector="Path.layoutIcon">
@@ -112,9 +123,6 @@
             <Setter Property="Height" Value="14"/>
             <Setter Property="Stretch" Value="Uniform"/>
             <Setter Property="Fill" Value="{DynamicResource TitleTextBrush}"/>
-        </Style>
-        <Style Selector="Path.layoutIcon.selected">
-            <Setter Property="Fill" Value="{DynamicResource SelectedIconForegroundBrush}"/>
         </Style>
 
         <!-- Thẻ panel -->
@@ -180,13 +188,13 @@
             <Setter Property="MinWidth" Value="55"/>
         </Style>
         <Style Selector="Button.tabClose, Button.tabAdd">
-            <Setter Property="Width" Value="34"/>
+            <Setter Property="Width" Value="26"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="CornerRadius" Value="4"/>
         </Style>
         <Style Selector="Button.tabClose Path, Button.tabAdd Path">
-            <Setter Property="Width" Value="12"/>
-            <Setter Property="Height" Value="12"/>
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Height" Value="10"/>
             <Setter Property="Stretch" Value="Uniform"/>
             <Setter Property="Stroke" Value="{DynamicResource TabSelectedTextBrush}"/>
             <Setter Property="StrokeThickness" Value="1.5"/>
@@ -236,9 +244,9 @@
             <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
         </Style>
         <Style Selector="Path.gitIcon">
-            <Setter Property="Width" Value="13"/>
-            <Setter Property="Height" Value="13"/>
-            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Stretch" Value="None"/>
             <Setter Property="Stroke" Value="{DynamicResource StatusTextBrush}"/>
             <Setter Property="StrokeThickness" Value="1.5"/>
             <Setter Property="StrokeLineCap" Value="Round"/>
