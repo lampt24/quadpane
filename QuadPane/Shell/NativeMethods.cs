@@ -217,6 +217,8 @@ internal static class NativeMethods
     public const int PM_REMOVE = 1;
 
     public const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12;
+    // Nhiều driver chuột (Logitech, Razer, ...) đổi nút Back/Forward thành các phím này
+    public const int VK_BROWSER_BACK = 0xA6, VK_BROWSER_FORWARD = 0xA7;
 
     // ---- user32 ----
 
@@ -261,6 +263,9 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern short GetKeyState(int vk);
+
+    [DllImport("user32.dll")]
+    public static extern int GetMessageTime();
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

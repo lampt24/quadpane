@@ -78,7 +78,7 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 - `Ctrl+L` / `Alt+D`: ô địa chỉ
 - `Ctrl+F`: chuyển tới ô tìm kiếm Everything trên thanh tiêu đề. Nhập từ khóa để thấy tối đa 200 kết quả đầu tiên trong tab mới tại panel đang chọn.
 - `Alt+←/→/↑`: lùi / tiến / lên thư mục cha
-- Nút Back/Forward trên chuột: lùi / tiến trong panel đang trỏ tới
+- Nút Back/Forward trên chuột (kể cả khi driver đổi thành phím Browser Back/Forward hoặc WM_APPCOMMAND): lùi / tiến trong panel đang trỏ tới; bấm nhanh liên tiếp lùi/tiến đủ số bước như File Explorer
 - `F5`: làm mới
 
 ## Hướng mở rộng

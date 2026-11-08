@@ -571,8 +571,10 @@ public partial class MainWindow : Window
         return CallNextHookEx(_hook, code, wParam, lParam);
     }
 
-    // Một số chuột/driver gửi Back/Forward bằng WM_APPCOMMAND đồng bộ thay vì WM_XBUTTON.
-    // WH_GETMESSAGE không thấy message gửi bằng SendMessage, nên bắt khi nó tới cửa sổ chính.
+    // Một số chuột/driver/bàn phím gửi Back/Forward bằng WM_APPCOMMAND (SendMessage) thay vì WM_XBUTTON.
+    // WH_GETMESSAGE không thấy message gửi đồng bộ, nên bắt bằng WH_CALLWNDPROC. Message này có thể tới
+    // bất kỳ cửa sổ con nào (Explorer nhúng, cửa sổ chứa NativeControlHost) rồi được DefWindowProc
+    // chuyển ngược lên cha, nên cùng một lần bấm sẽ đi qua hook nhiều lần: chỉ xử lý lần đầu.
     private IntPtr SentMessageHook(int code, IntPtr wParam, IntPtr lParam)
     {
         if (code >= 0)
@@ -580,12 +582,15 @@ public partial class MainWindow : Window
             try
             {
                 var message = Marshal.PtrToStructure<CWPSTRUCT>(lParam);
-                if (message.message == WM_APPCOMMAND && message.hwnd == TryGetPlatformHandle()?.Handle)
+                if (message.message == WM_APPCOMMAND && IsOwnWindow(message.hwnd))
                 {
                     var navigation = MapAppCommand(message.lParam);
-                    if (navigation != Shortcut.None)
+                    int time = GetMessageTime();
+                    if (navigation != Shortcut.None && !(_appCommandHandled && _lastAppCommandTime == time))
                     {
-                        var pane = PaneUnderMouse() ?? _active;
+                        _appCommandHandled = true;
+                        _lastAppCommandTime = time;
+                        var pane = _panes.FirstOrDefault(p => p.Owns(message.hwnd)) ?? PaneUnderMouse() ?? _active;
                         Dispatcher.UIThread.Post(() => NavigateWithMouse(pane, navigation));
                     }
                 }
@@ -593,6 +598,16 @@ public partial class MainWindow : Window
             catch (Exception ex) { App.LogCrash(ex); }
         }
         return CallNextHookEx(_sentMessageHook, code, wParam, lParam);
+    }
+
+    private bool _appCommandHandled;
+    private int _lastAppCommandTime;
+
+    /// <summary>Cửa sổ chính hoặc một cửa sổ con của nó (Explorer nhúng, ...).</summary>
+    private bool IsOwnWindow(IntPtr hwnd)
+    {
+        var main = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        return main != IntPtr.Zero && hwnd != IntPtr.Zero && (hwnd == main || IsChild(main, hwnd));
     }
 
     private PaneView? PaneUnderMouse()
@@ -623,15 +638,35 @@ public partial class MainWindow : Window
 
         IntPtr target = msg.hwnd;
         var pane = _panes.FirstOrDefault(p => p.Owns(target));
-        if (pane == null) return false;
 
+        // Nút Back/Forward của chuột: xử lý cho mọi vùng trong cửa sổ (Explorer nhúng lẫn phần Avalonia),
+        // điều hướng panel đang trỏ tới. Nuốt cả DOWN/UP/DBLCLK để DefWindowProc không sinh thêm
+        // WM_APPCOMMAND (tránh lùi 2 lần). Bấm nhanh liên tiếp, Windows gửi DBLCLK thay cho DOWN thứ hai:
+        // phải tính cả DBLCLK thì bấm 2 lần mới lùi đủ 2 bước như File Explorer.
         if (isXButton)
         {
+            if (pane == null && !IsOwnWindow(target)) return false;
             var navigation = MapXButton(msg.wParam);
             if (navigation == Shortcut.None) return false;
-            if (m == WM_XBUTTONDOWN) Dispatcher.UIThread.Post(() => NavigateWithMouse(pane, navigation));
+            if (m is WM_XBUTTONDOWN or WM_XBUTTONDBLCLK)
+            {
+                var p = pane ?? PaneUnderMouse() ?? _active;
+                Dispatcher.UIThread.Post(() => NavigateWithMouse(p, navigation));
+            }
             return true;
         }
+
+        // Phím Browser Back/Forward (driver chuột hay đổi nút bên thành phím này). Explorer nhúng
+        // không tự điều hướng với phím này nên phải tự xử lý; nuốt để không sinh thêm WM_APPCOMMAND.
+        if (isKeyDown && (int)msg.wParam is VK_BROWSER_BACK or VK_BROWSER_FORWARD && (pane != null || IsOwnWindow(target)))
+        {
+            var navigation = (int)msg.wParam == VK_BROWSER_BACK ? Shortcut.Back : Shortcut.Forward;
+            var p = pane ?? _active;
+            Dispatcher.UIThread.Post(() => NavigateWithMouse(p, navigation));
+            return true;
+        }
+
+        if (pane == null) return false;
 
         if (pane != _active)
         {

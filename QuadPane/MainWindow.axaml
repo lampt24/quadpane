@@ -6,39 +6,39 @@
         Icon="/Assets/QuadPane.ico"
         Width="1280" Height="800" MinWidth="830" MinHeight="420"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="40"
+        ExtendClientAreaTitleBarHeightHint="32"
         TransparencyLevelHint="Mica, AcrylicBlur, None"
         TransparencyBackgroundFallback="{DynamicResource WindowFallbackBrush}"
         Background="Transparent">
 
-    <Grid RowDefinitions="40,*,30" Background="{DynamicResource WindowFallbackBrush}">
+    <Grid RowDefinitions="32,*,30" Background="{DynamicResource WindowFallbackBrush}">
 
         <!-- ===== Thanh tiêu đề tự vẽ (nút đóng/thu nhỏ của hệ thống ở góc phải) ===== -->
         <Grid x:Name="TitleBar" Grid.Row="0" Background="{DynamicResource TitleSurfaceBrush}"
               ColumnDefinitions="Auto,*,Auto,150">
             <Border Grid.ColumnSpan="4" BorderBrush="{DynamicResource TitleBorderBrush}"
                     BorderThickness="0,0,0,1" IsHitTestVisible="False"/>
-            <StackPanel Orientation="Horizontal" Spacing="10" Margin="16,0,16,0" VerticalAlignment="Center"
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0,12,0" VerticalAlignment="Center"
                         IsHitTestVisible="False">
-                <Image Source="/Assets/logo-256.png" Width="20" Height="20"/>
+                <Image Source="/Assets/logo-256.png" Width="16" Height="16"/>
                 <StackPanel Orientation="Horizontal" Spacing="0" VerticalAlignment="Center">
-                    <TextBlock Text="QUAD" FontWeight="Bold" FontSize="14" LetterSpacing="1"
+                    <TextBlock Text="QUAD" FontWeight="Bold" FontSize="12" LetterSpacing="1"
                                Foreground="{DynamicResource TitleTextBrush}"/>
-                    <TextBlock Text="PANE" FontWeight="Bold" FontSize="14" LetterSpacing="1"
+                    <TextBlock Text="PANE" FontWeight="Bold" FontSize="12" LetterSpacing="1"
                                Foreground="{DynamicResource AccentBrush}"/>
                 </StackPanel>
-                <TextBlock x:Name="VersionLabel" FontSize="11" VerticalAlignment="Center" Margin="0,3,0,0"
+                <TextBlock x:Name="VersionLabel" FontSize="10" VerticalAlignment="Center" Margin="0,2,0,0"
                            Foreground="{DynamicResource StatusMutedTextBrush}"/>
             </StackPanel>
 
-            <TextBox x:Name="SearchBox" Classes="titleSearch" Grid.Column="1" Width="250" Margin="8,4,12,4"
+            <TextBox x:Name="SearchBox" Classes="titleSearch" Grid.Column="1" Width="230" Margin="8,0,10,0"
                      FocusAdorner="{x:Null}"
                      HorizontalAlignment="Right" VerticalAlignment="Center"
                      PlaceholderText="Tìm với Everything..." AutomationProperties.Name="Tìm với Everything"
                      TextChanged="SearchBox_TextChanged" KeyDown="SearchBox_KeyDown"/>
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                 <!-- Chọn bố cục -->
-                <Border Background="{DynamicResource SegmentBackgroundBrush}" CornerRadius="7" Padding="2">
+                <Border Background="{DynamicResource SegmentBackgroundBrush}" CornerRadius="6" Padding="2">
                     <StackPanel Orientation="Horizontal" Spacing="2">
                         <!-- Icon bố cục vẽ bằng vector (hệ toạ độ 16x16), màu theo Foreground của nút -->
                         <ToggleButton x:Name="QuadMode" Classes="segment" ToolTip.Tip="4 khung" Click="Layout_Click">
@@ -55,8 +55,8 @@
                         </ToggleButton>
                     </StackPanel>
                 </Border>
-                <Button Classes="icon" Content="&#xE9A6;" ToolTip.Tip="Chia đều các panel" Click="Equalize_Click"/>
-                <Button x:Name="ThemeButton" Classes="icon" Click="Theme_Click"/>
+                <Button Classes="icon titleIcon" Content="&#xE9A6;" ToolTip.Tip="Chia đều các panel" Click="Equalize_Click"/>
+                <Button x:Name="ThemeButton" Classes="icon titleIcon" Click="Theme_Click"/>
             </StackPanel>
         </Grid>
 

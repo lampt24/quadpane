@@ -25,6 +25,8 @@
                     <BoxShadows x:Key="PaneActiveGlow">0 0 8 2 #990067C0</BoxShadows>
                     <SolidColorBrush x:Key="AccentBrush" Color="#0067C0"/>
                     <SolidColorBrush x:Key="AccentSoftBrush" Color="#260067C0"/>
+                    <SolidColorBrush x:Key="ToggleCheckedBrush" Color="#E3E3E3"/>
+                    <SolidColorBrush x:Key="ToggleCheckedForegroundBrush" Color="#005FB8"/>
                     <SolidColorBrush x:Key="MutedTextBrush" Color="#616161"/>
                     <SolidColorBrush x:Key="SegmentBackgroundBrush" Color="#0F000000"/>
                     <SolidColorBrush x:Key="SplitterHoverBrush" Color="#590067C0"/>
@@ -52,6 +54,8 @@
                     <BoxShadows x:Key="PaneActiveGlow">0 0 8 2 #994CC2FF</BoxShadows>
                     <SolidColorBrush x:Key="AccentBrush" Color="#4CC2FF"/>
                     <SolidColorBrush x:Key="AccentSoftBrush" Color="#334CC2FF"/>
+                    <SolidColorBrush x:Key="ToggleCheckedBrush" Color="#334CC2FF"/>
+                    <SolidColorBrush x:Key="ToggleCheckedForegroundBrush" Color="#4CC2FF"/>
                     <SolidColorBrush x:Key="MutedTextBrush" Color="#A0A0A0"/>
                     <SolidColorBrush x:Key="SegmentBackgroundBrush" Color="#14FFFFFF"/>
                     <SolidColorBrush x:Key="SplitterHoverBrush" Color="#594CC2FF"/>
@@ -83,19 +87,36 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Focusable" Value="False"/>
         </Style>
+        <!-- Đang bật: light = nền xám đặc + icon accent (xanh trong suốt bị đục trên nền sáng); dark = nền accent nhạt -->
         <Style Selector="ToggleButton.icon:checked, ToggleButton.icon:checked:pointerover">
-            <Setter Property="Background" Value="{DynamicResource TabSelectedBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource ToggleCheckedBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ToggleCheckedForegroundBrush}"/>
+        </Style>
+        <!-- Bị vô hiệu: không tô nền (Fluent tô xám, trông như đang được chọn), chỉ làm mờ icon -->
+        <Style Selector="Button.icon:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TitleTextBrush}"/>
+        </Style>
+        <Style Selector="Button.icon:disabled">
+            <Setter Property="Opacity" Value="0.35"/>
+        </Style>
+
+        <!-- Nút icon trên thanh tiêu đề: nhỏ hơn cho vừa thanh 32px -->
+        <Style Selector="Button.titleIcon">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="CornerRadius" Value="4"/>
         </Style>
 
         <!-- Nút trong nhóm chọn bố cục (segmented control) -->
         <Style Selector="ToggleButton.segment">
             <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Width" Value="36"/>
-            <Setter Property="Height" Value="28"/>
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="22"/>
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -121,8 +142,8 @@
         </Style>
 
         <Style Selector="Path.layoutIcon">
-            <Setter Property="Width" Value="14"/>
-            <Setter Property="Height" Value="14"/>
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
             <Setter Property="Stretch" Value="Uniform"/>
             <Setter Property="Fill" Value="{DynamicResource TitleTextBrush}"/>
         </Style>
@@ -261,8 +282,10 @@
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="3"/>
-            <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style Selector="TextBox.titleSearch:focus, TextBox.titleSearch:focus-within">
