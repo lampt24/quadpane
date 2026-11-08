@@ -9,7 +9,7 @@ namespace QuadPane;
 
 internal static class UpdateService
 {
-    private const string Repo = "lampt24/quadpane";
+    internal const string Repo = "lampt24/quadpane";
     private static readonly HttpClient Client = new(new HttpClientHandler
     {
         UseProxy = true,
@@ -48,8 +48,8 @@ internal static class UpdateService
         return new Release(tag, assets);
     }
 
-    internal static bool Confirm(Window owner, string message) =>
-        MessageBoxW(owner.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero, message, "Cập nhật QuadPane", 0x24) == 6;
+    internal static bool Confirm(Window owner, string message, string title = "Cập nhật QuadPane") =>
+        MessageBoxW(owner.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero, message, title, 0x24) == 6;
 
     internal static void ShowError(Window owner, string message, string title = "Cập nhật QuadPane") =>
         MessageBoxW(owner.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero, message, title, 0x10);

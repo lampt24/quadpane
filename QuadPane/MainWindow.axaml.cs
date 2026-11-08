@@ -1,10 +1,10 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Microsoft.Win32;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -33,8 +33,7 @@ public partial class MainWindow : Window
     private UpdateService.Release? _availableRelease;
     private bool _checkingUpdate;
     private bool _installingUpdate;
-    private bool _startupSettingReady;
-    private const string StartupRegistryKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private SettingsWindow? _settingsWindow;
 
     // Hook message của thread UI: phím/chuột trong cửa sổ Win32 của Explorer
     // không đi qua hệ thống input của Avalonia, nên phải bắt ở mức Win32.
@@ -46,7 +45,11 @@ public partial class MainWindow : Window
     // Vị trí ô lưới của từng panel: 0 trên-trái, 1 trên-phải, 2 dưới-trái, 3 dưới-phải
     private static readonly (int Row, int Col)[] Cells = [(0, 0), (0, 2), (2, 0), (2, 2)];
 
-    private enum Shortcut { None, Pane1, Pane2, Pane3, Pane4, Address, Search, Back, Forward, Up, Refresh, NewTab, CloseTab, NextTab, PreviousTab }
+    private Dictionary<KeyChord, CommandId> _keyMap = new();
+    private PaneView? _previous;
+    private readonly List<(int Pane, string Path, string? Home)> _closedTabs = [];
+    private const int MaxClosedTabs = 25;
+    private CommandPalette? _palette;
 
     // Constructor không tham số cho designer
     public MainWindow() : this(new LayoutData()) { }
@@ -57,13 +60,6 @@ public partial class MainWindow : Window
         var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
         Title = $"QuadPane v{version}";
         VersionLabel.Text = $"v{version}";
-        if (OperatingSystem.IsWindows())
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey);
-            StartupCheck.IsChecked = key?.GetValue("QuadPane") is string value &&
-                value == $"\"{Environment.ProcessPath}\"";
-        }
-        _startupSettingReady = true;
         _layout = layout;
         _hookProc = GetMessageHook;
         _sentMessageHookProc = SentMessageHook;
@@ -74,15 +70,22 @@ public partial class MainWindow : Window
             var ids = _layout.TabIds[i] is { Length: > 0 } savedIds && savedIds.Length == paths.Length
                 ? savedIds : Enumerable.Range(0, paths.Length).Select(j => j == 0 ? $"QuadPane.Pane{i}" : $"QuadPane.Pane{i}.Tab{Guid.NewGuid():N}").ToArray();
             var pane = new PaneView(i, paths, ids, _layout.ActiveTabs[i], _layout.ShowTree[i],
-                LayoutStore.DefaultPath(i), _layout.TabHomes[i]);
+                LayoutStore.DefaultPath(i), _layout.TabHomes[i], _layout.ShowPreview[i]);
             Grid.SetRow(pane, Cells[i].Row);
             Grid.SetColumn(pane, Cells[i].Col);
             pane.Activated += SetActive;
             pane.PathChanged += p => { if (p == _active) UpdateStatus(); };
+            pane.ApplySettings(_layout);
+            pane.TabClosed += OnTabClosed;
+            pane.FolderVisited += (_, path) => _layout.AddRecent(path);
+            pane.FavoritesRequested += ShowFavoritesMenu;
+            pane.TabDropped += OnTabDropped;
+            pane.TabMoveRequested += (source, index, target) => MoveTab(source, index, _panes[target]);
             PaneGrid.Children.Insert(0, pane); // splitter nằm trên cùng
             _panes[i] = pane;
         }
 
+        _keyMap = CommandCatalog.BuildMap(_layout);
         _active = _panes[Math.Clamp(_layout.ActivePane, 0, 3)];
         _mode = _layout.Mode;
         RestoreWindowPlacement();
@@ -117,8 +120,11 @@ public partial class MainWindow : Window
             HideDrawnTitle();
         }, DispatcherPriority.Background);
 #if !DEBUG
-        _updateTimer.Start();
-        _ = CheckForUpdatesAsync();
+        if (_layout.AutoCheckUpdates)
+        {
+            _updateTimer.Start();
+            _ = CheckForUpdatesAsync();
+        }
 #endif
         _gitTimer.Start();
     }
@@ -180,6 +186,7 @@ public partial class MainWindow : Window
     private void SetActive(PaneView pane)
     {
         bool changed = _active != pane;
+        if (changed) _previous = _active;
         _active = pane;
         foreach (var p in _panes) p.IsActive = p == pane;
         UpdateStatus();
@@ -226,7 +233,7 @@ public partial class MainWindow : Window
         _gitRefresh = cancellation;
         var folder = _active.CurrentPath;
         _gitStatusPath = folder;
-        if (folder is null || !Directory.Exists(folder))
+        if (!_layout.ShowGitBar || folder is null || !Directory.Exists(folder))
         {
             GitControls.IsVisible = false;
             GitActions.IsVisible = false;
@@ -313,32 +320,55 @@ public partial class MainWindow : Window
         }
     }
 
-    private void StartupCheck_Changed(object? sender, RoutedEventArgs e)
+    // ---- Cài đặt ----
+
+    internal LayoutData Settings => _layout;
+    internal string? AvailableUpdateTag => _availableRelease?.Tag;
+
+    private void Settings_Click(object? sender, RoutedEventArgs e) => OpenSettings();
+
+    internal void OpenSettings(string? page = null)
     {
-        if (!_startupSettingReady || !OperatingSystem.IsWindows()) return;
-        var enabled = StartupCheck.IsChecked == true;
+        if (_settingsWindow is null)
+        {
+            _settingsWindow = new SettingsWindow(this);
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Show(this);
+        }
+        else _settingsWindow.Activate();
+        if (page is not null) _settingsWindow.ShowPage(page);
+    }
+
+    /// <summary>Gọi sau khi cửa sổ Cài đặt đổi một tuỳ chọn: áp dụng ngay và lưu.</summary>
+    internal void ApplySettings()
+    {
+        _keyMap = CommandCatalog.BuildMap(_layout);
+        foreach (var pane in _panes) pane.ApplySettings(_layout);
+#if !DEBUG
+        if (_layout.AutoCheckUpdates) _updateTimer.Start();
+        else _updateTimer.Stop();
+#endif
+        RefreshGit();
+        LayoutStore.Save(_layout);
+    }
+
+    /// <summary>Kiểm tra cập nhật theo yêu cầu; trả về nội dung để hiển thị.</summary>
+    internal async Task<string> CheckForUpdatesNowAsync()
+    {
         try
         {
-            if (enabled)
-            {
-                var exe = Environment.ProcessPath;
-                if (exe is null || !Path.GetFileName(exe).Equals("QuadPane.exe", StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("Chỉ bật được cho bản QuadPane đã đóng gói.");
-                using var key = Registry.CurrentUser.CreateSubKey(StartupRegistryKey);
-                key.SetValue("QuadPane", $"\"{exe}\"");
-            }
-            else
-            {
-                using var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey, writable: true);
-                key?.DeleteValue("QuadPane", throwOnMissingValue: false);
-            }
+            var release = await UpdateService.GetNewReleaseAsync();
+            _availableRelease = release;
+            UpdateButton.IsVisible = release is not null;
+            UpdateErrorButton.IsVisible = false;
+            if (release is null) return "Bạn đang dùng phiên bản mới nhất.";
+            UpdateButton.Content = $"Cập nhật {release.Tag}";
+            return $"Có phiên bản mới {release.Tag}. Bấm nút cập nhật trên thanh trạng thái để cài.";
         }
         catch (Exception ex)
         {
-            _startupSettingReady = false;
-            StartupCheck.IsChecked = !enabled;
-            _startupSettingReady = true;
-            UpdateService.ShowError(this, ex.Message, "Cài đặt QuadPane");
+            App.LogCrash(ex);
+            return $"Không kiểm tra được: {ex.Message}";
         }
     }
 
@@ -387,13 +417,16 @@ public partial class MainWindow : Window
 
     // ---- Bố cục ----
 
-    private void Layout_Click(object? sender, RoutedEventArgs e)
+    private void Layout_Click(object? sender, RoutedEventArgs e) => SetMode(
+        sender == TripleMode ? LayoutMode.Triple
+        : sender == DualMode ? LayoutMode.Dual
+        : sender == SingleMode ? LayoutMode.Single
+        : LayoutMode.Quad);
+
+    private void SetMode(LayoutMode mode)
     {
         if (UsesBothSplitters(_mode)) RememberRatios();
-        _mode = sender == TripleMode ? LayoutMode.Triple
-              : sender == DualMode ? LayoutMode.Dual
-              : sender == SingleMode ? LayoutMode.Single
-              : LayoutMode.Quad;
+        _mode = mode;
         ApplyLayout();
     }
 
@@ -479,16 +512,19 @@ public partial class MainWindow : Window
 
     // ---- Theme ----
 
-    private void Theme_Click(object? sender, RoutedEventArgs e)
+    // Vòng: Theo hệ thống → Sáng → Tối → Theo hệ thống
+    private void Theme_Click(object? sender, RoutedEventArgs e) => SetTheme(_layout.Theme switch
     {
-        // Vòng: Theo hệ thống → Sáng → Tối → Theo hệ thống
-        _layout.Theme = _layout.Theme switch
-        {
-            ThemeMode.System => ThemeMode.Light,
-            ThemeMode.Light => ThemeMode.Dark,
-            _ => ThemeMode.System,
-        };
+        ThemeMode.System => ThemeMode.Light,
+        ThemeMode.Light => ThemeMode.Dark,
+        _ => ThemeMode.System,
+    });
+
+    internal void SetTheme(ThemeMode mode)
+    {
+        _layout.Theme = mode;
         ((App)Application.Current!).ApplyThemeMode(_layout.Theme);
+        _settingsWindow?.SyncTheme();
         UpdateThemeButton();
         ApplyThemeToNative();
         DispatcherTimer.RunOnce(ApplyThemeToNative, TimeSpan.FromMilliseconds(150), DispatcherPriority.Background);
@@ -586,12 +622,12 @@ public partial class MainWindow : Window
                 {
                     var navigation = MapAppCommand(message.lParam);
                     int time = GetMessageTime();
-                    if (navigation != Shortcut.None && !(_appCommandHandled && _lastAppCommandTime == time))
+                    if (navigation is { } nav && !(_appCommandHandled && _lastAppCommandTime == time))
                     {
                         _appCommandHandled = true;
                         _lastAppCommandTime = time;
                         var pane = _panes.FirstOrDefault(p => p.Owns(message.hwnd)) ?? PaneUnderMouse() ?? _active;
-                        Dispatcher.UIThread.Post(() => NavigateWithMouse(pane, navigation));
+                        Dispatcher.UIThread.Post(() => NavigateWithMouse(pane, nav));
                     }
                 }
             }
@@ -620,10 +656,10 @@ public partial class MainWindow : Window
         return visual?.FindAncestorOfType<PaneView>(includeSelf: true);
     }
 
-    private void NavigateWithMouse(PaneView pane, Shortcut navigation)
+    private void NavigateWithMouse(PaneView pane, CommandId navigation)
     {
         SetActive(pane);
-        if (navigation == Shortcut.Back) pane.GoBack();
+        if (navigation == CommandId.Back) pane.GoBack();
         else pane.GoForward();
     }
 
@@ -646,8 +682,7 @@ public partial class MainWindow : Window
         if (isXButton)
         {
             if (pane == null && !IsOwnWindow(target)) return false;
-            var navigation = MapXButton(msg.wParam);
-            if (navigation == Shortcut.None) return false;
+            if (MapXButton(msg.wParam) is not { } navigation) return false;
             if (m is WM_XBUTTONDOWN or WM_XBUTTONDBLCLK)
             {
                 var p = pane ?? PaneUnderMouse() ?? _active;
@@ -660,7 +695,7 @@ public partial class MainWindow : Window
         // không tự điều hướng với phím này nên phải tự xử lý; nuốt để không sinh thêm WM_APPCOMMAND.
         if (isKeyDown && (int)msg.wParam is VK_BROWSER_BACK or VK_BROWSER_FORWARD && (pane != null || IsOwnWindow(target)))
         {
-            var navigation = (int)msg.wParam == VK_BROWSER_BACK ? Shortcut.Back : Shortcut.Forward;
+            var navigation = (int)msg.wParam == VK_BROWSER_BACK ? CommandId.Back : CommandId.Forward;
             var p = pane ?? _active;
             Dispatcher.UIThread.Post(() => NavigateWithMouse(p, navigation));
             return true;
@@ -675,90 +710,72 @@ public partial class MainWindow : Window
         }
         if (isMouseDown) return false;
 
-        var shortcut = MapVirtualKey((int)msg.wParam, IsKeyDown(VK_CONTROL), IsKeyDown(VK_MENU), IsKeyDown(VK_SHIFT));
-        if (shortcut != Shortcut.None)
+        var modifiers = (IsKeyDown(VK_CONTROL) ? KeyModifiers.Control : 0) |
+                        (IsKeyDown(VK_MENU) ? KeyModifiers.Alt : 0) |
+                        (IsKeyDown(VK_SHIFT) ? KeyModifiers.Shift : 0);
+        var key = KeyChord.FromVirtualKey((int)msg.wParam);
+        if (key != Key.None && _keyMap.TryGetValue(KeyChord.Create(key, modifiers), out var command))
         {
-            Dispatcher.UIThread.Post(() => RunShortcut(shortcut));
+            Dispatcher.UIThread.Post(() => RunCommand(command));
             return true;
         }
         // Delete, F2, Ctrl+C/X/V/A, ... do chính Explorer xử lý
         return pane.TranslateAccelerator(ref msg);
     }
 
-    private static Shortcut MapXButton(IntPtr wParam) => ((wParam.ToInt64() >> 16) & 0xFFFF) switch
+    private static CommandId? MapXButton(IntPtr wParam) => ((wParam.ToInt64() >> 16) & 0xFFFF) switch
     {
-        1 => Shortcut.Back,
-        2 => Shortcut.Forward,
-        _ => Shortcut.None,
+        1 => CommandId.Back,
+        2 => CommandId.Forward,
+        _ => null,
     };
 
-    private static Shortcut MapAppCommand(IntPtr lParam) => ((lParam.ToInt64() >> 16) & 0x0FFF) switch
+    private static CommandId? MapAppCommand(IntPtr lParam) => ((lParam.ToInt64() >> 16) & 0x0FFF) switch
     {
-        1 => Shortcut.Back,
-        2 => Shortcut.Forward,
-        _ => Shortcut.None,
+        1 => CommandId.Back,
+        2 => CommandId.Forward,
+        _ => null,
     };
 
     internal static void SelfCheckMouseNavigation()
     {
-        if (MapXButton((IntPtr)0x10000) != Shortcut.Back ||
-            MapXButton((IntPtr)0x20000) != Shortcut.Forward ||
-            MapXButton(IntPtr.Zero) != Shortcut.None ||
-            MapAppCommand((IntPtr)0x10000) != Shortcut.Back ||
-            MapAppCommand((IntPtr)0x20000) != Shortcut.Forward ||
-            MapAppCommand(unchecked((IntPtr)0x80010000u)) != Shortcut.Back ||
-            MapAppCommand(IntPtr.Zero) != Shortcut.None)
+        if (MapXButton((IntPtr)0x10000) != CommandId.Back ||
+            MapXButton((IntPtr)0x20000) != CommandId.Forward ||
+            MapXButton(IntPtr.Zero) is not null ||
+            MapAppCommand((IntPtr)0x10000) != CommandId.Back ||
+            MapAppCommand((IntPtr)0x20000) != CommandId.Forward ||
+            MapAppCommand(unchecked((IntPtr)0x80010000u)) != CommandId.Back ||
+            MapAppCommand(IntPtr.Zero) is not null)
             throw new Exception("Mouse navigation mapping failed.");
+        CommandCatalog.SelfCheck();
     }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
-        var mods = e.KeyModifiers;
-        var shortcut = MapAvaloniaKey(e.Key, mods.HasFlag(KeyModifiers.Control), mods.HasFlag(KeyModifiers.Alt),
-                                      mods.HasFlag(KeyModifiers.Shift));
-        // Khi đang gõ ô địa chỉ, để Alt+←/→ và F5 hoạt động như phím của TextBox
-        if (shortcut is Shortcut.Back or Shortcut.Forward && e.Source is TextBox) return;
-        if (shortcut == Shortcut.None) return;
-        RunShortcut(shortcut);
+        if (KeyChord.IsModifierKey(e.Key)) return;
+        var chord = KeyChord.Create(e.Key, e.KeyModifiers);
+        if (!_keyMap.TryGetValue(chord, out var command)) return;
+        // Đang gõ trong ô nhập: để các phím soạn thảo (chữ, Alt+←/→, Ctrl+C/V...) cho TextBox
+        if (e.Source is TextBox && IsTextEditingChord(chord)) return;
+        RunCommand(command);
         e.Handled = true;
     }
 
-    private static Shortcut MapVirtualKey(int vk, bool ctrl, bool alt, bool shift)
+    private static bool IsTextEditingChord(KeyChord chord)
     {
-        if (ctrl && !alt && vk == 0x09) return shift ? Shortcut.PreviousTab : Shortcut.NextTab;
-        if (shift) return Shortcut.None;
-        if (ctrl && !alt && vk == 0x54) return Shortcut.NewTab;
-        if (ctrl && !alt && vk == 0x57) return Shortcut.CloseTab;
-        if (ctrl && !alt && vk is >= 0x31 and <= 0x34) return Shortcut.Pane1 + (vk - 0x31);
-        if ((ctrl && !alt && vk == 0x4C) || (alt && !ctrl && vk == 0x44)) return Shortcut.Address; // Ctrl+L, Alt+D
-        if (ctrl && !alt && vk == 0x46) return Shortcut.Search; // Ctrl+F
-        if (alt && !ctrl)
-            return vk switch { 0x25 => Shortcut.Back, 0x27 => Shortcut.Forward, 0x26 => Shortcut.Up, _ => Shortcut.None };
-        if (!ctrl && !alt && vk == 0x74) return Shortcut.Refresh; // F5
-        return Shortcut.None;
+        bool ctrl = chord.Modifiers.HasFlag(KeyModifiers.Control), alt = chord.Modifiers.HasFlag(KeyModifiers.Alt);
+        if (!ctrl && !alt) return chord.Key is not (>= Key.F1 and <= Key.F24);
+        if (alt && !ctrl) return chord.Key is Key.Left or Key.Right or Key.Up or Key.Down;
+        return ctrl && !alt && chord.Key is Key.A or Key.C or Key.V or Key.X or Key.Z or Key.Y
+            or Key.Left or Key.Right or Key.Back or Key.Delete or Key.Home or Key.End;
     }
 
-    private static Shortcut MapAvaloniaKey(Key key, bool ctrl, bool alt, bool shift)
+    internal void RunCommand(CommandId command)
     {
-        if (ctrl && !alt && key == Key.Tab) return shift ? Shortcut.PreviousTab : Shortcut.NextTab;
-        if (shift) return Shortcut.None;
-        if (ctrl && !alt && key == Key.T) return Shortcut.NewTab;
-        if (ctrl && !alt && key == Key.W) return Shortcut.CloseTab;
-        if (ctrl && !alt && key is >= Key.D1 and <= Key.D4) return Shortcut.Pane1 + (key - Key.D1);
-        if ((ctrl && !alt && key == Key.L) || (alt && !ctrl && key == Key.D)) return Shortcut.Address;
-        if (ctrl && !alt && key == Key.F) return Shortcut.Search;
-        if (alt && !ctrl)
-            return key switch { Key.Left => Shortcut.Back, Key.Right => Shortcut.Forward, Key.Up => Shortcut.Up, _ => Shortcut.None };
-        if (!ctrl && !alt && key == Key.F5) return Shortcut.Refresh;
-        return Shortcut.None;
-    }
-
-    private void RunShortcut(Shortcut s)
-    {
-        switch (s)
+        switch (command)
         {
-            case >= Shortcut.Pane1 and <= Shortcut.Pane4:
-                var pane = _panes[s - Shortcut.Pane1];
+            case >= CommandId.Pane1 and <= CommandId.Pane4:
+                var pane = _panes[command - CommandId.Pane1];
                 if (!pane.IsVisible)
                 {
                     if (UsesBothSplitters(_mode)) RememberRatios();
@@ -768,17 +785,291 @@ public partial class MainWindow : Window
                 ApplyLayout();
                 pane.FocusView();
                 break;
-            case Shortcut.Address: _active.FocusAddress(); break;
-            case Shortcut.Search: FocusSearch(); break;
-            case Shortcut.Back: _active.GoBack(); break;
-            case Shortcut.Forward: _active.GoForward(); break;
-            case Shortcut.Up: _active.GoUp(); break;
-            case Shortcut.Refresh: _active.RefreshView(); break;
-            case Shortcut.NewTab: _active.OpenTab(); break;
-            case Shortcut.CloseTab: _active.CloseCurrentTab(); break;
-            case Shortcut.NextTab: _active.SelectNextTab(1); break;
-            case Shortcut.PreviousTab: _active.SelectNextTab(-1); break;
+            case CommandId.Address: _active.FocusAddress(); break;
+            case CommandId.Search: FocusSearch(); break;
+            case CommandId.Filter: _active.FocusFilter(); break;
+            case CommandId.Back: _active.GoBack(); break;
+            case CommandId.Forward: _active.GoForward(); break;
+            case CommandId.Up: _active.GoUp(); break;
+            case CommandId.Refresh: _active.RefreshView(); break;
+            case CommandId.NewTab: _active.OpenTab(); break;
+            case CommandId.CloseTab: _active.CloseCurrentTab(); break;
+            case CommandId.ReopenTab: ReopenClosedTab(); break;
+            case CommandId.DuplicateTab: _active.DuplicateCurrentTab(); break;
+            case CommandId.NextTab: _active.SelectNextTab(1); break;
+            case CommandId.PreviousTab: _active.SelectNextTab(-1); break;
+            case CommandId.Favorites: _active.ShowFavorites(); break;
+            case CommandId.AddFavorite: ToggleFavorite(_active.CurrentPath); break;
+            case CommandId.CopyToOther: TransferToOtherPane(move: false); break;
+            case CommandId.MoveToOther: TransferToOtherPane(move: true); break;
+            case CommandId.OpenTerminal: _active.OpenTerminal(); break;
+            case CommandId.ToggleTree: _active.ToggleTree(); break;
+            case CommandId.TogglePreview: _active.TogglePreview(); break;
+            case CommandId.SaveWorkspace: _ = SaveWorkspaceAsync(); break;
+            case CommandId.LayoutQuad: SetMode(LayoutMode.Quad); break;
+            case CommandId.LayoutTriple: SetMode(LayoutMode.Triple); break;
+            case CommandId.LayoutDual: SetMode(LayoutMode.Dual); break;
+            case CommandId.LayoutSingle: SetMode(LayoutMode.Single); break;
+            case CommandId.Equalize: Equalize_Click(null, new RoutedEventArgs()); break;
+            case CommandId.ToggleTheme: Theme_Click(null, new RoutedEventArgs()); break;
+            case CommandId.CommandPalette: OpenCommandPalette(); break;
+            case CommandId.Settings: OpenSettings(); break;
         }
+    }
+
+    private KeyGesture? GestureFor(CommandId command) =>
+        CommandCatalog.Gestures(_layout, command) is [var first, ..] ? new KeyGesture(first.Key, first.Modifiers) : null;
+
+    // ---- Tab đã đóng ----
+
+    private void OnTabClosed(PaneView pane, string path, string? home)
+    {
+        _closedTabs.Insert(0, (pane.Index, path, home));
+        if (_closedTabs.Count > MaxClosedTabs) _closedTabs.RemoveAt(_closedTabs.Count - 1);
+    }
+
+    private void ReopenClosedTab(int index = 0)
+    {
+        if (index < 0 || index >= _closedTabs.Count) return;
+        var (paneIndex, path, home) = _closedTabs[index];
+        _closedTabs.RemoveAt(index);
+        var pane = _panes[paneIndex];
+        if (!pane.IsVisible) SetMode(LayoutMode.Quad);
+        pane.OpenTab(path, home);
+        SetActive(pane);
+    }
+
+    // ---- Chuyển tab giữa các panel ----
+
+    private void OnTabDropped(PaneView source, int index, PixelPoint screen)
+    {
+        var target = _panes.FirstOrDefault(p => p != source && p.IsVisible && ContainsScreenPoint(p, screen));
+        if (target is not null) MoveTab(source, index, target);
+    }
+
+    private static bool ContainsScreenPoint(Control control, PixelPoint point)
+    {
+        var topLeft = control.PointToScreen(new Point(0, 0));
+        var bottomRight = control.PointToScreen(new Point(control.Bounds.Width, control.Bounds.Height));
+        return point.X >= topLeft.X && point.X < bottomRight.X && point.Y >= topLeft.Y && point.Y < bottomRight.Y;
+    }
+
+    private void MoveTab(PaneView source, int index, PaneView target)
+    {
+        if (source == target || source.TabInfo(index) is not { } info) return;
+        if (!target.IsVisible) SetMode(LayoutMode.Quad);
+        target.OpenTab(info.Path, info.Home);
+        source.RemoveTab(index);
+        SetActive(target);
+    }
+
+    // ---- Sao chép / di chuyển sang panel kia ----
+
+    /// <summary>Panel đích: panel hoạt động trước đó nếu đang hiện, không thì panel cùng hàng, rồi panel hiện bất kỳ.</summary>
+    private PaneView? OtherPane()
+    {
+        var visible = _panes.Where(p => p.IsVisible && p != _active).ToList();
+        if (_previous is { } previous && visible.Contains(previous)) return previous;
+        return visible.FirstOrDefault(p => p.Index == (_active.Index ^ 1)) ?? visible.FirstOrDefault();
+    }
+
+    private void TransferToOtherPane(bool move)
+    {
+        var verb = move ? "Di chuyển" : "Sao chép";
+        try
+        {
+            var target = OtherPane()
+                ?? throw new InvalidOperationException("Cần ít nhất 2 panel đang hiện. Hãy chuyển sang bố cục 2, 3 hoặc 4 khung.");
+            var destination = target.CurrentPath;
+            if (destination is null || !Directory.Exists(destination))
+                throw new InvalidOperationException($"Panel {target.Index + 1} không mở thư mục trên ổ đĩa, nên không thể {verb.ToLowerInvariant()} vào đó.");
+            var items = _active.SelectedPaths();
+            if (items.Count == 0)
+                throw new InvalidOperationException($"Chọn file hoặc thư mục cần {verb.ToLowerInvariant()} trong panel {_active.Index + 1} trước.");
+            var hwnd = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            if (ShellTransfer(hwnd, items, destination, move))
+                StatusText.Text = $"{verb} {items.Count:N0} mục sang panel {target.Index + 1}";
+        }
+        catch (Exception ex)
+        {
+            UpdateService.ShowError(this, ex.Message, $"{verb} sang panel kia");
+        }
+    }
+
+    // ---- Yêu thích, gần đây, tab đã đóng ----
+
+    private void ToggleFavorite(string? path)
+    {
+        if (path is null || !Directory.Exists(path))
+        {
+            UpdateService.ShowError(this, "Chỉ thêm được thư mục trên ổ đĩa vào yêu thích.", "Yêu thích");
+            return;
+        }
+        if (_layout.IsFavorite(path))
+            _layout.Favorites.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+        else
+            _layout.Favorites.Add(path);
+        StatusText.Text = _layout.IsFavorite(path) ? "Đã thêm vào yêu thích" : "Đã bỏ khỏi yêu thích";
+        LayoutStore.Save(_layout);
+    }
+
+    private static string FolderLabel(string path)
+    {
+        var name = Path.GetFileName(path.TrimEnd('\\', '/'));
+        return string.IsNullOrEmpty(name) ? path : $"{name}    {path}";
+    }
+
+    private void ShowFavoritesMenu(PaneView pane, Control anchor)
+    {
+        SetActive(pane);
+        var items = new List<Control>();
+        MenuItem Item(string header, Action action, CommandId? command = null, bool enabled = true, string? tip = null)
+        {
+            var item = new MenuItem { Header = header, IsEnabled = enabled };
+            if (command is { } id) item.InputGesture = GestureFor(id);
+            if (tip is not null) ToolTip.SetTip(item, tip);
+            item.Click += (_, _) => action();
+            return item;
+        }
+        void Go(string path)
+        {
+            if (!Directory.Exists(path)) UpdateService.ShowError(this, $"Không tìm thấy thư mục: {path}", "Yêu thích");
+            else if (!pane.Navigate(path)) pane.OpenTab(path, null);
+        }
+
+        var current = pane.CurrentPath;
+        bool canFavorite = current is not null && Directory.Exists(current);
+        items.Add(Item(_layout.IsFavorite(current) ? "Bỏ thư mục này khỏi yêu thích" : "Thêm thư mục này vào yêu thích",
+            () => ToggleFavorite(current), CommandId.AddFavorite, canFavorite));
+        items.Add(new Separator());
+        if (_layout.Favorites.Count == 0)
+            items.Add(new MenuItem { Header = "Chưa có thư mục yêu thích", IsEnabled = false });
+        foreach (var favorite in _layout.Favorites.ToList())
+            items.Add(Item(FolderLabel(favorite), () => Go(favorite), tip: favorite));
+
+        var recent = new MenuItem { Header = "Gần đây", IsEnabled = _layout.RecentFolders.Count > 0 };
+        foreach (var path in _layout.RecentFolders.ToList())
+            recent.Items.Add(Item(FolderLabel(path), () => Go(path), tip: path));
+        var closed = new MenuItem { Header = "Tab đã đóng", IsEnabled = _closedTabs.Count > 0 };
+        for (int i = 0; i < _closedTabs.Count; i++)
+        {
+            int index = i;
+            var info = _closedTabs[i];
+            closed.Items.Add(Item($"{FolderLabel(info.Path)}    (panel {info.Pane + 1})", () => ReopenClosedTab(index),
+                i == 0 ? CommandId.ReopenTab : null, tip: info.Path));
+        }
+        items.Add(new Separator());
+        items.Add(recent);
+        items.Add(closed);
+        items.Add(new Separator());
+        items.Add(Item("Quản lý yêu thích...", () => OpenSettings("Favorites")));
+        var flyout = new MenuFlyout { ItemsSource = items, Placement = PlacementMode.BottomEdgeAlignedLeft };
+        flyout.ShowAt(anchor);
+    }
+
+    // ---- Workspace ----
+
+    private void Workspace_Click(object? sender, RoutedEventArgs e)
+    {
+        var items = new List<Control>();
+        foreach (var workspace in _layout.Workspaces.ToList())
+        {
+            var item = new MenuItem { Header = workspace.Name };
+            ToolTip.SetTip(item, $"{workspace.TabPaths.Sum(t => t?.Length ?? 0)} tab · {LayoutName(workspace.Mode)}");
+            item.Click += (_, _) => ApplyWorkspace(workspace);
+            items.Add(item);
+        }
+        if (items.Count == 0) items.Add(new MenuItem { Header = "Chưa có workspace nào", IsEnabled = false });
+        items.Add(new Separator());
+        var save = new MenuItem { Header = "Lưu workspace hiện tại...", InputGesture = GestureFor(CommandId.SaveWorkspace) };
+        save.Click += (_, _) => _ = SaveWorkspaceAsync();
+        items.Add(save);
+        var manage = new MenuItem { Header = "Quản lý workspace..." };
+        manage.Click += (_, _) => OpenSettings("Workspaces");
+        items.Add(manage);
+        new MenuFlyout { ItemsSource = items, Placement = PlacementMode.BottomEdgeAlignedRight }.ShowAt(WorkspaceButton);
+    }
+
+    internal static string LayoutName(LayoutMode mode) => mode switch
+    {
+        LayoutMode.Triple => "3 khung",
+        LayoutMode.Dual => "2 khung",
+        LayoutMode.Single => "1 khung",
+        _ => "4 khung",
+    };
+
+    private Workspace CaptureWorkspace(string name) => new()
+    {
+        Name = name,
+        Mode = _mode,
+        ActivePane = _active.Index,
+        TabPaths = [.. _panes.Select(p => p.TabPaths)],
+        TabHomes = [.. _panes.Select(p => p.TabHomes)],
+        ActiveTabs = [.. _panes.Select(p => p.ActiveTabIndex)],
+        ShowTree = [.. _panes.Select(p => p.ShowTree)],
+        ShowPreview = [.. _panes.Select(p => p.ShowPreview)],
+    };
+
+    private async Task SaveWorkspaceAsync()
+    {
+        var name = await InputDialog.ShowAsync(this, "Lưu workspace",
+            "Tên workspace (lưu toàn bộ tab, thư mục home và bố cục hiện tại):", _layout.Workspaces.Count == 0 ? "Workspace 1" : "");
+        if (string.IsNullOrWhiteSpace(name)) return;
+        name = name.Trim();
+        int existing = _layout.Workspaces.FindIndex(w => string.Equals(w.Name, name, StringComparison.CurrentCultureIgnoreCase));
+        if (existing >= 0 && !UpdateService.Confirm(this, $"Workspace \"{name}\" đã có. Ghi đè bằng bộ tab hiện tại?", "Lưu workspace"))
+            return;
+        var workspace = CaptureWorkspace(name);
+        if (existing >= 0) _layout.Workspaces[existing] = workspace;
+        else _layout.Workspaces.Add(workspace);
+        LayoutStore.Save(_layout);
+        StatusText.Text = $"Đã lưu workspace \"{name}\"";
+        _settingsWindow?.RefreshLists();
+    }
+
+    internal void ApplyWorkspace(Workspace workspace)
+    {
+        if (UsesBothSplitters(_mode)) RememberRatios();
+        for (int i = 0; i < 4; i++)
+            _panes[i].ReplaceTabs(workspace.TabPaths[i] ?? [], workspace.TabHomes[i], workspace.ActiveTabs[i],
+                workspace.ShowTree[i], workspace.ShowPreview[i]);
+        _mode = workspace.Mode;
+        _active = _panes[Math.Clamp(workspace.ActivePane, 0, 3)];
+        _previous = null;
+        ApplyLayout();
+        SetActive(_active);
+        _active.FocusView();
+        StatusText.Text = $"Workspace: {workspace.Name}";
+    }
+
+    // ---- Bảng lệnh ----
+
+    private void CommandPalette_Click(object? sender, RoutedEventArgs e) => OpenCommandPalette();
+
+    private void OpenCommandPalette()
+    {
+        if (_palette is not null) { _palette.Activate(); return; }
+        var entries = new List<CommandPalette.Entry>();
+        foreach (var command in CommandCatalog.All)
+        {
+            var id = command.Id;
+            entries.Add(new(command.Title, command.Group, CommandCatalog.GestureText(_layout, id), () => RunCommand(id)));
+        }
+        foreach (var workspace in _layout.Workspaces.ToList())
+            entries.Add(new($"Workspace: {workspace.Name}", "Workspace", LayoutName(workspace.Mode), () => ApplyWorkspace(workspace)));
+        foreach (var path in _layout.Favorites.ToList())
+            entries.Add(new($"Mở {path}", "Yêu thích", "", () => OpenPathInActive(path)));
+        foreach (var path in _layout.RecentFolders.ToList())
+            entries.Add(new($"Mở {path}", "Gần đây", "", () => OpenPathInActive(path)));
+        _palette = new CommandPalette(entries);
+        _palette.Closed += (_, _) => _palette = null;
+        _palette.ShowNear(this);
+    }
+
+    private void OpenPathInActive(string path)
+    {
+        if (!Directory.Exists(path)) UpdateService.ShowError(this, $"Không tìm thấy thư mục: {path}", "QuadPane");
+        else if (!_active.Navigate(path)) _active.OpenTab(path, null);
     }
 
     // ---- Lưu / khôi phục ----
@@ -800,10 +1091,16 @@ public partial class MainWindow : Window
     {
         if (!App.IsExiting)
         {
-            e.Cancel = true;
-            Hide();
-            return;
+            if (_layout.CloseToTray)
+            {
+                e.Cancel = true;
+                _settingsWindow?.Close();
+                Hide();
+                return;
+            }
+            App.RequestExit();
         }
+        _settingsWindow?.Close();
         _updateTimer.Stop();
         _gitTimer.Stop();
         _statusTimer.Stop();
@@ -822,6 +1119,7 @@ public partial class MainWindow : Window
             _layout.TabIds[i] = _panes[i].TabIds;
             _layout.ActiveTabs[i] = _panes[i].ActiveTabIndex;
             _layout.ShowTree[i] = _panes[i].ShowTree;
+            _layout.ShowPreview[i] = _panes[i].ShowPreview;
         }
 
         _layout.Maximized = WindowState == WindowState.Maximized;

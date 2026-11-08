@@ -1,6 +1,7 @@
 using System.IO;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -31,10 +32,27 @@ public partial class PaneView : UserControl
     private bool _showTree;
     private bool _dark;
     private readonly string _defaultPath;
+    private string _newTabPath = @"C:\";
+    private bool _useWindowsTerminal = true;
+    private bool _showPreview;
+    private bool _syncingFilter;
+    private readonly DispatcherTimer _filterTimer = new() { Interval = TimeSpan.FromMilliseconds(180) };
+    private PaneTab? _dragTab;
+    private Avalonia.Point _dragStart;
+    private bool _dragging;
 
     public int Index { get; }
     public event Action<PaneView>? Activated;
     public event Action<PaneView>? PathChanged;
+    /// <summary>Người dùng đóng một tab thư mục: (panel, đường dẫn, home).</summary>
+    public event Action<PaneView, string, string?>? TabClosed;
+    /// <summary>Đã mở một thư mục trên ổ đĩa (dùng cho danh sách gần đây).</summary>
+    public event Action<PaneView, string>? FolderVisited;
+    public event Action<PaneView, Control>? FavoritesRequested;
+    /// <summary>Thả tab sau khi kéo: (panel nguồn, chỉ số tab, điểm thả trên màn hình).</summary>
+    public event Action<PaneView, int, Avalonia.PixelPoint>? TabDropped;
+    /// <summary>Chọn "Chuyển sang panel" trong menu tab: (panel nguồn, chỉ số tab, panel đích).</summary>
+    public event Action<PaneView, int, int>? TabMoveRequested;
 
     private PaneTab CurrentTab => _tabs[_selectedIndex];
     private ExplorerHost Host => CurrentTab.Host;
@@ -42,6 +60,8 @@ public partial class PaneView : UserControl
     public string DisplayPath => CurrentTab.Search is { } search ? $"Everything: {search.Query}" : AddressBox.Text ?? "";
     public int ItemCount => CurrentTab.Search?.ResultCount ?? Host.ItemCount;
     public bool ShowTree => _showTree;
+    public bool ShowPreview => _showPreview;
+    public int TabCount => _tabs.Count;
     public string?[] TabPaths => _tabs.Where(t => t.Search is null).Select(t => t.Path).ToArray();
     public string?[] TabHomes => _tabs.Where(t => t.Search is null).Select(t => t.HomePath).ToArray();
     public string[] TabIds => _tabs.Where(t => t.Search is null).Select(t => t.Id).ToArray();
@@ -98,13 +118,16 @@ public partial class PaneView : UserControl
         : this(index, [initialPath], [$"QuadPane.Pane{index}"], 0, showTree, LayoutStore.DefaultPath(index)) { }
 
     public PaneView(int index, string?[] paths, string[] ids, int selectedIndex, bool showTree,
-        string defaultPath, string?[]? homes = null)
+        string defaultPath, string?[]? homes = null, bool showPreview = false)
     {
         InitializeComponent();
         Index = index;
         _showTree = showTree;
+        _showPreview = showPreview;
         _defaultPath = defaultPath;
         TreeToggle.IsChecked = showTree;
+        PreviewToggle.IsChecked = showPreview;
+        _filterTimer.Tick += (_, _) => { _filterTimer.Stop(); ApplyFilterText(); };
         for (int i = 0; i < paths.Length; i++)
             AddTab(paths[i], ids[i], select: false, home: homes is not null && i < homes.Length ? homes[i] : null);
         if (_tabs.Count == 0) AddTab(defaultPath, $"QuadPane.Pane{index}", select: false);
@@ -136,13 +159,14 @@ public partial class PaneView : UserControl
     }
 
     private void AddTab(string? path, string id, bool select, SearchResultsView? search = null,
-        bool focus = true, string? home = null)
+        bool focus = true, string? home = null, int insertAt = -1)
     {
         var host = new ExplorerHost
         {
             InitialPath = path,
             PropertyBagName = id,
             ShowTree = _showTree,
+            ShowPreview = _showPreview,
             Dark = _dark,
             IsVisible = false,
         };
@@ -178,8 +202,11 @@ public partial class PaneView : UserControl
             tab.Path = parsing;
             tab.Display = display;
             tab.Label.Text = GetTabTitle(display);
+            if (tab.Host.FilterText.Length > 0) tab.Host.SetFilter("");
+            if (IsFileSystemFolder(parsing)) FolderVisited?.Invoke(this, parsing);
             if (tab == CurrentTab)
             {
+                SyncFilterBox();
                 AddressBox.Text = display;
                 AddressBox.Classes.Remove("error");
                 UpdateHomeButtons();
@@ -187,8 +214,15 @@ public partial class PaneView : UserControl
             }
         };
         host.ItemCountChanged += () => { if (tab == CurrentTab) PathChanged?.Invoke(this); };
+        host.HistoryChanged += () => { if (_tabs.Contains(tab) && tab == CurrentTab) UpdateHomeButtons(); };
         selectButton.Click += (_, _) => SelectTab(_tabs.IndexOf(tab));
         closeButton.Click += (_, _) => CloseTab(tab);
+        AttachTabDrag(tab, selectButton);
+        container.ContextRequested += (_, e) =>
+        {
+            BuildTabMenu(tab).Open(container);
+            e.Handled = true;
+        };
         container.PointerPressed += (_, e) =>
         {
             if (e.GetCurrentPoint(container).Properties.IsMiddleButtonPressed)
@@ -197,12 +231,14 @@ public partial class PaneView : UserControl
                 e.Handled = true;
             }
         };
-        _tabs.Add(tab);
-        TabStrip.Children.Insert(TabStrip.Children.Count - 1, container);
+        int position = insertAt < 0 || insertAt > _tabs.Count ? _tabs.Count : insertAt;
+        if (position <= _selectedIndex && position < _tabs.Count) _selectedIndex++;
+        _tabs.Insert(position, tab);
+        TabStrip.Children.Insert(position, container);
         HostLayer.Children.Add(host);
         if (search is not null) HostLayer.Children.Add(search);
         UpdateCloseButtons();
-        if (select) SelectTab(_tabs.Count - 1, focus);
+        if (select) SelectTab(position, focus);
     }
 
     private void UpdateCloseButtons()
@@ -241,6 +277,7 @@ public partial class PaneView : UserControl
         else selected.Host.IsVisible = true;
         selected.Container.Classes.Set("selected", true);
         NavigationBar.IsVisible = CurrentTab.Search is null;
+        SyncFilterBox();
         UpdateHomeButtons();
         AddressBox.Text = CurrentTab.Display ?? "";
         AddressBox.Classes.Remove("error");
@@ -250,10 +287,12 @@ public partial class PaneView : UserControl
         Dispatcher.UIThread.Post(() => selected.Container.BringIntoView(), DispatcherPriority.Background);
     }
 
-    private void CloseTab(PaneTab tab)
+    private void CloseTab(PaneTab tab, bool remember = true)
     {
         int index = _tabs.IndexOf(tab);
         if (index < 0) return;
+        if (remember && tab.Search is null && tab.Path is { } closedPath)
+            TabClosed?.Invoke(this, closedPath, tab.HomePath);
         if (_tabs.Count == 1)
         {
             if (tab.Search is not null)
@@ -282,7 +321,218 @@ public partial class PaneView : UserControl
         if (wasSelected) SelectTab(Math.Min(index, _tabs.Count - 1));
     }
 
-    public void OpenTab() => AddTab(@"C:\", $"QuadPane.Pane{Index}.Tab{Guid.NewGuid():N}", select: true);
+    /// <summary>Áp dụng các tuỳ chọn trong cửa sổ Cài đặt.</summary>
+    public void ApplySettings(LayoutData settings)
+    {
+        _newTabPath = settings.EffectiveNewTabPath;
+        _useWindowsTerminal = settings.UseWindowsTerminal;
+        ClaudeButton.IsVisible = settings.ShowClaudeButton;
+        CodexButton.IsVisible = settings.ShowCodexButton;
+        VSCodeButton.IsVisible = settings.ShowVSCodeButton;
+        TerminalButton.IsVisible = settings.ShowTerminalButton;
+    }
+
+    private static string NewTabId(int pane) => $"QuadPane.Pane{pane}.Tab{Guid.NewGuid():N}";
+
+    private static bool IsFileSystemFolder(string? path)
+    {
+        try { return path is not null && Path.IsPathFullyQualified(path) && !path.StartsWith("::", StringComparison.Ordinal); }
+        catch (ArgumentException) { return false; }
+    }
+
+    /// <summary>Mở thư mục trong tab mới (dùng cho mở lại tab, yêu thích, chuyển tab giữa các panel).</summary>
+    public void OpenTab(string path, string? home, bool select = true) =>
+        AddTab(path, NewTabId(Index), select, home: home);
+
+    public void DuplicateCurrentTab()
+    {
+        var tab = CurrentTab;
+        if (tab.Search is not null) return;
+        AddTab(tab.Path, NewTabId(Index), select: true, home: tab.HomePath, insertAt: _selectedIndex + 1);
+    }
+
+    /// <summary>Đường dẫn và home của tab; null với tab kết quả tìm kiếm.</summary>
+    public (string Path, string? Home)? TabInfo(int index) =>
+        index >= 0 && index < _tabs.Count && _tabs[index] is { Search: null, Path: { } path } tab
+            ? (path, tab.HomePath) : null;
+
+    /// <summary>Gỡ tab khỏi panel mà không ghi vào danh sách tab đã đóng (khi chuyển sang panel khác).</summary>
+    public void RemoveTab(int index)
+    {
+        if (index >= 0 && index < _tabs.Count) CloseTab(_tabs[index], remember: false);
+    }
+
+    /// <summary>Thay toàn bộ tab của panel (khi chuyển workspace).</summary>
+    public void ReplaceTabs(string?[] paths, string?[]? homes, int selectedIndex, bool showTree, bool showPreview)
+    {
+        foreach (var tab in _tabs)
+        {
+            TabStrip.Children.Remove(tab.Container);
+            HostLayer.Children.Remove(tab.Host);
+            if (tab.Search is { } search)
+            {
+                search.Stop();
+                HostLayer.Children.Remove(search);
+            }
+        }
+        _tabs.Clear();
+        _selectedIndex = 0;
+        _showTree = showTree;
+        _showPreview = showPreview;
+        TreeToggle.IsChecked = showTree;
+        PreviewToggle.IsChecked = showPreview;
+        for (int i = 0; i < paths.Length; i++)
+            if (!string.IsNullOrWhiteSpace(paths[i]))
+                AddTab(paths[i], NewTabId(Index), select: false, home: homes is not null && i < homes.Length ? homes[i] : null);
+        if (_tabs.Count == 0) AddTab(_defaultPath, NewTabId(Index), select: false);
+        SelectTab(Math.Clamp(selectedIndex, 0, _tabs.Count - 1), focus: false);
+    }
+
+    public IReadOnlyList<string> SelectedPaths() => CurrentTab.Search is { } search
+        ? search.SelectedPath is { } selected ? [selected] : []
+        : Host.SelectedPaths();
+
+    public void ShowFavorites() => FavoritesRequested?.Invoke(this, NavigationBar.IsVisible ? FavoritesButton : TabStrip);
+    public void ToggleTree() { if (CurrentTab.Search is null) TreeToggle.IsChecked = !_showTree; }
+    public void TogglePreview() { if (CurrentTab.Search is null) PreviewToggle.IsChecked = !_showPreview; }
+    public void OpenTerminal() => LaunchTerminal(null);
+
+    // ---- Lọc nhanh ----
+
+    public void FocusFilter()
+    {
+        if (CurrentTab.Search is not null) return;
+        FilterBox.Focus();
+        FilterBox.SelectAll();
+    }
+
+    private void SyncFilterBox()
+    {
+        _syncingFilter = true;
+        _filterTimer.Stop();
+        FilterBox.Text = CurrentTab.Search is null ? Host.FilterText : "";
+        FilterBox.Classes.Set("active", !string.IsNullOrEmpty(FilterBox.Text));
+        _syncingFilter = false;
+    }
+
+    private void ApplyFilterText()
+    {
+        if (CurrentTab.Search is not null) return;
+        var text = FilterBox.Text ?? "";
+        FilterBox.Classes.Set("active", text.Trim().Length > 0);
+        if (!Host.SetFilter(text))
+            ShowActionError("Explorer của Windows trên máy này không hỗ trợ lọc trong danh sách file.");
+    }
+
+    private void FilterBox_TextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (_syncingFilter) return;
+        _filterTimer.Stop();
+        _filterTimer.Start();
+    }
+
+    private void FilterBox_GotFocus(object? sender, FocusChangedEventArgs e) => Activated?.Invoke(this);
+
+    private void FilterBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            FilterBox.Text = "";
+            _filterTimer.Stop();
+            ApplyFilterText();
+            FocusView();
+            e.Handled = true;
+        }
+        else if (e.Key is Key.Enter or Key.Down)
+        {
+            _filterTimer.Stop();
+            ApplyFilterText();
+            FocusView();
+            e.Handled = true;
+        }
+    }
+
+    // ---- Menu và kéo thả tab ----
+
+    private ContextMenu BuildTabMenu(PaneTab tab)
+    {
+        var items = new List<Control>();
+        MenuItem Item(string header, Action action, bool enabled = true)
+        {
+            var item = new MenuItem { Header = header, IsEnabled = enabled };
+            item.Click += (_, _) => action();
+            return item;
+        }
+        bool isFolder = tab.Search is null;
+        items.Add(Item("Nhân bản tab", () => { SelectTab(_tabs.IndexOf(tab), focus: false); DuplicateCurrentTab(); }, isFolder));
+        var move = new MenuItem { Header = "Chuyển sang panel", IsEnabled = isFolder };
+        for (int i = 0; i < 4; i++)
+        {
+            if (i == Index) continue;
+            int target = i;
+            move.Items.Add(Item($"Panel {i + 1}", () => TabMoveRequested?.Invoke(this, _tabs.IndexOf(tab), target)));
+        }
+        items.Add(move);
+        items.Add(new Separator());
+        items.Add(Item("Đóng các tab khác", () =>
+        {
+            foreach (var other in _tabs.Where(t => t != tab).ToList()) CloseTab(other);
+            SelectTab(_tabs.IndexOf(tab));
+        }, _tabs.Count > 1));
+        items.Add(Item("Đóng tab", () => CloseTab(tab)));
+        return new ContextMenu { ItemsSource = items };
+    }
+
+    private void AttachTabDrag(PaneTab tab, Button button)
+    {
+        button.AddHandler(PointerPressedEvent, (_, e) =>
+        {
+            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+            _dragTab = tab;
+            _dragStart = e.GetPosition(this);
+            _dragging = false;
+        }, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
+        button.AddHandler(PointerMovedEvent, (_, e) =>
+        {
+            if (_dragTab != tab) return;
+            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { EndTabDrag(); return; }
+            var point = e.GetPosition(this);
+            if (_dragging || Math.Abs(point.X - _dragStart.X) + Math.Abs(point.Y - _dragStart.Y) < 10) return;
+            _dragging = true;
+            button.Cursor = new Cursor(StandardCursorType.DragMove);
+            tab.Container.Opacity = 0.55;
+        }, RoutingStrategies.Bubble, handledEventsToo: true);
+        button.AddHandler(PointerReleasedEvent, (_, e) =>
+        {
+            if (_dragTab != tab) return;
+            bool dropped = _dragging;
+            var screen = this.PointToScreen(e.GetPosition(this));
+            EndTabDrag();
+            if (dropped) TabDropped?.Invoke(this, _tabs.IndexOf(tab), screen);
+        }, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
+        // Dự phòng: nếu mất capture khi chuột đang ở trên cửa sổ Explorer nhúng (Win32), lấy vị trí thả từ con trỏ
+        button.AddHandler(PointerCaptureLostEvent, (_, _) =>
+        {
+            if (_dragTab != tab) return;
+            bool dropped = _dragging;
+            EndTabDrag();
+            if (dropped && NativeMethods.GetCursorPos(out var cursor))
+                TabDropped?.Invoke(this, _tabs.IndexOf(tab), new PixelPoint(cursor.X, cursor.Y));
+        }, RoutingStrategies.Bubble, handledEventsToo: true);
+    }
+
+    private void EndTabDrag()
+    {
+        if (_dragTab is { } tab)
+        {
+            tab.Container.Opacity = 1;
+            if (tab.Container.Child is StackPanel { Children: [Button select, ..] }) select.Cursor = null;
+        }
+        _dragTab = null;
+        _dragging = false;
+    }
+
+    public void OpenTab() => AddTab(_newTabPath, NewTabId(Index), select: true);
     public void CloseCurrentTab() => CloseTab(CurrentTab);
     public void SelectNextTab(int direction) => SelectTab((_selectedIndex + direction + _tabs.Count) % _tabs.Count);
 
@@ -319,6 +569,8 @@ public partial class PaneView : UserControl
         PinButton.IsChecked = canPin && tab.HomePath is not null &&
             string.Equals(path, tab.HomePath, StringComparison.OrdinalIgnoreCase);
         HomeButton.IsEnabled = tab.Search is null && tab.HomePath is not null;
+        BackButton.IsEnabled = tab.Search is null && tab.Host.CanGoBack;
+        ForwardButton.IsEnabled = tab.Search is null && tab.Host.CanGoForward;
         ToolTip.SetTip(PinButton, PinButton.IsChecked == true
             ? "Bỏ ghim thư mục home của tab" : "Ghim thư mục này làm home của tab");
         ToolTip.SetTip(HomeButton, tab.HomePath is null
@@ -357,6 +609,8 @@ public partial class PaneView : UserControl
     private void Claude_Click(object? sender, RoutedEventArgs e) => LaunchTerminal("claude");
     private void Codex_Click(object? sender, RoutedEventArgs e) => LaunchTerminal("codex");
     private void VSCode_Click(object? sender, RoutedEventArgs e) => LaunchTool("code", ".");
+    private void Terminal_Click(object? sender, RoutedEventArgs e) => LaunchTerminal(null);
+    private void Favorites_Click(object? sender, RoutedEventArgs e) => FavoritesRequested?.Invoke(this, FavoritesButton);
 
     private string FolderPath()
     {
@@ -366,7 +620,7 @@ public partial class PaneView : UserControl
         return path;
     }
 
-    private static string FindTool(string name)
+    internal static string FindTool(string name)
     {
         foreach (var directory in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
         {
@@ -395,13 +649,13 @@ public partial class PaneView : UserControl
         catch (Exception ex) { ShowActionError(ex.Message); }
     }
 
-    private void LaunchTerminal(string command)
+    /// <summary>Mở terminal tại thư mục đang xem; <paramref name="command"/> null thì chỉ mở shell.</summary>
+    private void LaunchTerminal(string? command)
     {
         try
         {
             var folder = FolderPath();
-            var executable = FindTool(command);
-            var invocation = "& '" + executable.Replace("'", "''") + "'";
+            string? invocation = command is null ? null : "& '" + FindTool(command).Replace("'", "''") + "'";
             string shell;
             try { shell = FindTool("pwsh"); }
             catch (FileNotFoundException)
@@ -410,15 +664,17 @@ public partial class PaneView : UserControl
                     "WindowsPowerShell", "v1.0", "powershell.exe");
             }
 
-            try
+            if (_useWindowsTerminal) try
             {
                 var terminal = new ProcessStartInfo(FindTool("wt"))
                 {
                     WorkingDirectory = folder,
                     UseShellExecute = true,
                 };
-                foreach (var arg in new[] { "-d", folder, shell, "-NoExit", "-Command", invocation })
-                    terminal.ArgumentList.Add(arg);
+                var args = invocation is null
+                    ? new[] { "-d", folder }
+                    : new[] { "-d", folder, shell, "-NoExit", "-Command", invocation };
+                foreach (var arg in args) terminal.ArgumentList.Add(arg);
                 using var process = Process.Start(terminal) ?? throw new InvalidOperationException("Không thể mở Windows Terminal.");
                 return;
             }
@@ -431,7 +687,7 @@ public partial class PaneView : UserControl
                 WorkingDirectory = folder,
                 UseShellExecute = true,
             };
-            foreach (var arg in new[] { "-NoExit", "-Command", invocation })
+            foreach (var arg in invocation is null ? new[] { "-NoExit" } : new[] { "-NoExit", "-Command", invocation })
                 powershell.ArgumentList.Add(arg);
             using var fallback = Process.Start(powershell)
                 ?? throw new InvalidOperationException("Không thể mở PowerShell.");
@@ -445,9 +701,7 @@ public partial class PaneView : UserControl
         {
             var clipboard = TopLevel.GetTopLevel(this)?.Clipboard
                 ?? throw new InvalidOperationException("Không thể truy cập clipboard.");
-            var paths = CurrentTab.Search is { } search
-                ? search.SelectedPath is { } selected ? new[] { selected } : []
-                : Host.SelectedPaths();
+            var paths = SelectedPaths();
             await clipboard.SetTextAsync(paths.Count > 0 ? string.Join(Environment.NewLine, paths) : FolderPath());
         }
         catch (Exception ex) { ShowActionError(ex.Message); }
@@ -468,6 +722,11 @@ public partial class PaneView : UserControl
     {
         _showTree = TreeToggle.IsChecked == true;
         foreach (var tab in _tabs) tab.Host.ShowTree = _showTree;
+    }
+    private void PreviewToggle_Changed(object? sender, RoutedEventArgs e)
+    {
+        _showPreview = PreviewToggle.IsChecked == true;
+        foreach (var tab in _tabs) tab.Host.ShowPreview = _showPreview;
     }
     private void AddressBox_GotFocus(object? sender, FocusChangedEventArgs e)
     {

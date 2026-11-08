@@ -22,7 +22,7 @@
                     <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#FFFFFF"/>
                     <SolidColorBrush x:Key="PaneHeaderBrush" Color="#F9F9F9"/>
                     <SolidColorBrush x:Key="PaneBorderBrush" Color="#E5E5E5"/>
-                    <BoxShadows x:Key="PaneActiveGlow">0 0 8 2 #990067C0</BoxShadows>
+                    <BoxShadows x:Key="PaneActiveGlow">0 1 0 0 #660067C0</BoxShadows>
                     <SolidColorBrush x:Key="AccentBrush" Color="#0067C0"/>
                     <SolidColorBrush x:Key="AccentSoftBrush" Color="#260067C0"/>
                     <SolidColorBrush x:Key="ToggleCheckedBrush" Color="#E3E3E3"/>
@@ -51,7 +51,7 @@
                     <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#202020"/>
                     <SolidColorBrush x:Key="PaneHeaderBrush" Color="#272727"/>
                     <SolidColorBrush x:Key="PaneBorderBrush" Color="#333333"/>
-                    <BoxShadows x:Key="PaneActiveGlow">0 0 8 2 #994CC2FF</BoxShadows>
+                    <BoxShadows x:Key="PaneActiveGlow">0 1 0 0 #804CC2FF</BoxShadows>
                     <SolidColorBrush x:Key="AccentBrush" Color="#4CC2FF"/>
                     <SolidColorBrush x:Key="AccentSoftBrush" Color="#334CC2FF"/>
                     <SolidColorBrush x:Key="ToggleCheckedBrush" Color="#334CC2FF"/>
@@ -230,7 +230,7 @@
             <Setter Property="Padding" Value="0"/>
             <Setter Property="CornerRadius" Value="4"/>
         </Style>
-        <Style Selector="Button.tabAction.copyPath">
+        <Style Selector="Button.tabAction.glyph">
             <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
@@ -302,6 +302,10 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Background" Value="{DynamicResource AddressBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
+        </Style>
+
+        <Style Selector="TextBox.filter.active">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
         </Style>
 
         <Style Selector="TextBox.address.error">

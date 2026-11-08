@@ -51,7 +51,7 @@ static GraphicsPath Rounded(float x, float y, float w, float h, float r)
 
 static Bitmap Render(int s)
 {
-    // Render ở độ phân giải gấp bốn lần rồi thu nhỏ để nét chéo của chữ Q rõ ở 16 px.
+    // Render ở độ phân giải gấp bốn lần rồi thu nhỏ để viền bo tròn mượt ở 16 px.
     const int scale = 4;
     int n = s * scale;
     using var large = new Bitmap(n, n, PixelFormat.Format32bppArgb);
@@ -61,25 +61,31 @@ static Bitmap Render(int s)
         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
         g.ScaleTransform(n / 256f, n / 256f);
 
-        using var background = Rounded(0, 0, 256, 256, 54);
-        using var backgroundBrush = new LinearGradientBrush(new PointF(0, 0), new PointF(256, 256),
-            Color.FromArgb(0x17, 0x3E, 0x62), Color.FromArgb(0x0A, 0x20, 0x39));
-        g.FillPath(backgroundBrush, background);
+        // Khe giữa các ô được làm tròn theo pixel thật (tối thiểu 1 px) để icon 16/24 px không nhòe.
+        float unit = 256f / s;
+        int gapPx = Math.Max(1, (int)Math.Round(12f * s / 256));
+        int halfPx = (s - gapPx) / 2;
+        float leftEnd = halfPx * unit, rightStart = (halfPx + gapPx) * unit;
+        const float inset = 16, far = 240, tileRadius = 12;
 
-        using var frame = Rounded(43.5f, 43.5f, 169, 169, 31.5f);
-        using var framePen = new Pen(Color.FromArgb(0xD8, 0xF2, 0xFF), 13) { LineJoin = LineJoin.Round };
-        g.DrawPath(framePen, frame);
-        using var dividerPen = new Pen(Color.FromArgb(0xD8, 0xF2, 0xFF), 12);
-        g.DrawLine(dividerPen, 128, 44, 128, 212);
-        g.DrawLine(dividerPen, 44, 128, 212, 128);
+        using var shape = Rounded(inset, inset, far - inset, far - inset, 58);
+        g.SetClip(shape);
 
-        using var active = Rounded(52, 52, 68, 68, 10);
-        using var activeBrush = new LinearGradientBrush(new PointF(52, 52), new PointF(120, 120),
-            Color.FromArgb(0x74, 0xE5, 0xFF), Color.FromArgb(0x28, 0xB9, 0xED));
+        float nearW = leftEnd - inset, farW = far - rightStart;
+        using var active = Rounded(inset, inset, nearW, nearW, tileRadius);
+        using var activeBrush = new LinearGradientBrush(new PointF(inset, inset), new PointF(leftEnd, leftEnd),
+            Color.FromArgb(0x7B, 0xE6, 0xFF), Color.FromArgb(0x22, 0xB2, 0xEE));
         g.FillPath(activeBrush, active);
-        using var tailPen = new Pen(Color.FromArgb(0x41, 0xD1, 0xF5), 22)
-            { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        g.DrawLine(tailPen, 173, 173, 226, 226);
+
+        using var topRight = Rounded(rightStart, inset, farW, nearW, tileRadius);
+        using var bottomLeft = Rounded(inset, rightStart, nearW, farW, tileRadius);
+        using var bottomRight = Rounded(rightStart, rightStart, farW, farW, tileRadius);
+        using var topRightBrush = new SolidBrush(Color.FromArgb(0x3B, 0x8E, 0xE6));
+        using var bottomLeftBrush = new SolidBrush(Color.FromArgb(0x2C, 0x70, 0xCF));
+        using var bottomRightBrush = new SolidBrush(Color.FromArgb(0x1E, 0x53, 0xA6));
+        g.FillPath(topRightBrush, topRight);
+        g.FillPath(bottomLeftBrush, bottomLeft);
+        g.FillPath(bottomRightBrush, bottomRight);
     }
 
     var bmp = new Bitmap(s, s, PixelFormat.Format32bppArgb);

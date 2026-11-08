@@ -104,6 +104,47 @@ internal enum ExplorerBrowserOptions : uint
     NoPersistViewState = 0x80,
 }
 
+/// <summary>Bộ lọc mục hiển thị của Explorer Browser (gõ để lọc).</summary>
+[ComImport, Guid("9cc22886-dc8e-11d2-b1d0-00c04f8eeb3e"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IFolderFilter
+{
+    [PreserveSig] int ShouldShow(IntPtr psf, IntPtr pidlFolder, IntPtr pidlItem);
+    [PreserveSig] int GetEnumFlags(IntPtr psf, IntPtr pidlFolder, IntPtr phwnd, IntPtr pgrfFlags);
+}
+
+[ComImport, Guid("c0a651f5-b48b-11d2-b5ed-006097c686f6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IFolderFilterSite
+{
+    [PreserveSig] int SetFilter([MarshalAs(UnmanagedType.IUnknown)] object? punk);
+}
+
+// SHFILEOPSTRUCTW: trên x86 struct được pack 1 byte, trên x64/ARM64 theo căn lề tự nhiên.
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+internal struct SHFILEOPSTRUCT64
+{
+    public IntPtr hwnd;
+    public uint wFunc;
+    [MarshalAs(UnmanagedType.LPWStr)] public string pFrom;
+    [MarshalAs(UnmanagedType.LPWStr)] public string? pTo;
+    public ushort fFlags;
+    public int fAnyOperationsAborted;
+    public IntPtr hNameMappings;
+    [MarshalAs(UnmanagedType.LPWStr)] public string? lpszProgressTitle;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
+internal struct SHFILEOPSTRUCT32
+{
+    public IntPtr hwnd;
+    public uint wFunc;
+    [MarshalAs(UnmanagedType.LPWStr)] public string pFrom;
+    [MarshalAs(UnmanagedType.LPWStr)] public string? pTo;
+    public ushort fFlags;
+    public int fAnyOperationsAborted;
+    public IntPtr hNameMappings;
+    [MarshalAs(UnmanagedType.LPWStr)] public string? lpszProgressTitle;
+}
+
 [StructLayout(LayoutKind.Sequential)]
 internal struct RECT
 {
@@ -175,6 +216,10 @@ internal static class NativeMethods
     public static readonly Guid IID_IEnumIDList = new("000214f2-0000-0000-c000-000000000046");
     public static readonly Guid IID_IExplorerPaneVisibility = new("e07010ec-bc17-44c0-97b0-46c7c95b9edc");
     public static readonly Guid EP_NavPane = new("cb316b22-25f7-42b8-8a09-540d23a43c2f");
+    public static readonly Guid EP_PreviewPane = new("893c63d1-45c8-4d17-be19-223be71be365");
+    public const uint SIGDN_PARENTRELATIVEPARSING = 0x80018001;
+    public const uint FO_MOVE = 1, FO_COPY = 2;
+    public const ushort FOF_ALLOWUNDO = 0x40;
 
     public const uint FVM_DETAILS = 4;
 
@@ -309,6 +354,39 @@ internal static class NativeMethods
 
     [DllImport("shell32.dll")]
     public static extern IntPtr ILClone(IntPtr pidl);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "SHFileOperationW")]
+    private static extern int SHFileOperation64(ref SHFILEOPSTRUCT64 op);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "SHFileOperationW")]
+    private static extern int SHFileOperation32(ref SHFILEOPSTRUCT32 op);
+
+    /// <summary>
+    /// Sao chép / di chuyển bằng hộp thoại tiến trình của Windows (hỏi khi trùng tên, hỗ trợ Ctrl+Z trong Explorer).
+    /// Trả về false nếu người dùng huỷ.
+    /// </summary>
+    public static bool ShellTransfer(IntPtr owner, IReadOnlyList<string> sources, string target, bool move)
+    {
+        string from = string.Join('\0', sources) + "\0\0";
+        string to = target + "\0\0";
+        uint func = move ? FO_MOVE : FO_COPY;
+        int result, aborted;
+        if (IntPtr.Size == 4)
+        {
+            var op = new SHFILEOPSTRUCT32 { hwnd = owner, wFunc = func, pFrom = from, pTo = to, fFlags = FOF_ALLOWUNDO };
+            result = SHFileOperation32(ref op);
+            aborted = op.fAnyOperationsAborted;
+        }
+        else
+        {
+            var op = new SHFILEOPSTRUCT64 { hwnd = owner, wFunc = func, pFrom = from, pTo = to, fFlags = FOF_ALLOWUNDO };
+            result = SHFileOperation64(ref op);
+            aborted = op.fAnyOperationsAborted;
+        }
+        if (result != 0 && aborted == 0)
+            throw new InvalidOperationException($"Windows báo lỗi khi {(move ? "di chuyển" : "sao chép")} (mã 0x{result:X}).");
+        return aborted == 0;
+    }
 
     [DllImport("shell32.dll")]
     public static extern IntPtr ILCombine(IntPtr parent, IntPtr child);

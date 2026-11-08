@@ -56,6 +56,12 @@
                     </StackPanel>
                 </Border>
                 <Button Classes="icon titleIcon" Content="&#xE9A6;" ToolTip.Tip="Chia đều các panel" Click="Equalize_Click"/>
+                <Button x:Name="WorkspaceButton" Classes="icon titleIcon" Content="&#xE7C4;"
+                        ToolTip.Tip="Workspace: lưu và chuyển nhanh bộ tab + bố cục"
+                        AutomationProperties.Name="Workspace" Click="Workspace_Click"/>
+                <Button Classes="icon titleIcon" Content="&#xE8FD;"
+                        ToolTip.Tip="Bảng lệnh (Ctrl+Shift+P)" AutomationProperties.Name="Bảng lệnh"
+                        Click="CommandPalette_Click"/>
                 <Button x:Name="ThemeButton" Classes="icon titleIcon" Click="Theme_Click"/>
             </StackPanel>
         </Grid>
@@ -76,17 +82,7 @@
                 BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,1,0,0">
             <Grid Margin="4,0,10,0" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="8">
                 <Button Grid.Column="0" Classes="icon" Content="&#xE713;" Height="26" Width="26" Focusable="True"
-                        ToolTip.Tip="Cài đặt" AutomationProperties.Name="Cài đặt">
-                    <Button.Flyout>
-                        <Flyout Placement="Top">
-                            <StackPanel Margin="12" Spacing="8">
-                                <TextBlock Text="Cài đặt" FontWeight="SemiBold"/>
-                                <CheckBox x:Name="StartupCheck" Content="Khởi động cùng Windows"
-                                          IsCheckedChanged="StartupCheck_Changed"/>
-                            </StackPanel>
-                        </Flyout>
-                    </Button.Flyout>
-                </Button>
+                        ToolTip.Tip="Cài đặt (Ctrl+,)" AutomationProperties.Name="Cài đặt" Click="Settings_Click"/>
                 <TextBlock x:Name="StatusText" Grid.Column="1" FontSize="11.5" FontWeight="Medium"
                            Foreground="{DynamicResource StatusTextBrush}" VerticalAlignment="Center"/>
                 <Button x:Name="UpdateButton" Grid.Column="2" Classes="update" IsVisible="False"

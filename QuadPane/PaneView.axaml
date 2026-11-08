@@ -1,27 +1,31 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="QuadPane.PaneView">
+             x:Class="QuadPane.PaneView"
+             ClipToBounds="False">
 
     <Border x:Name="Card" Classes="pane">
         <DockPanel>
             <Border DockPanel.Dock="Top" Background="{DynamicResource TabBarBrush}" ClipToBounds="True">
                 <DockPanel LastChildFill="True">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" Margin="4,2,5,0">
-                        <Button Classes="tabAction" AutomationProperties.Name="Mở Claude Code tại thư mục này"
+                        <Button x:Name="ClaudeButton" Classes="tabAction" AutomationProperties.Name="Mở Claude Code tại thư mục này"
                                 ToolTip.Tip="Mở Claude Code tại thư mục này" Click="Claude_Click">
                             <Image Source="/Assets/claude.png" Width="18" Height="18"/>
                         </Button>
-                        <Button Classes="tabAction" AutomationProperties.Name="Mở Codex tại thư mục này"
+                        <Button x:Name="CodexButton" Classes="tabAction" AutomationProperties.Name="Mở Codex tại thư mục này"
                                 ToolTip.Tip="Mở Codex tại thư mục này" Click="Codex_Click">
                             <Path Width="18" Height="18" Stretch="Uniform"
                                   Fill="{DynamicResource TabSelectedTextBrush}"
                                   Data="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/>
                         </Button>
-                        <Button Classes="tabAction" AutomationProperties.Name="Mở VS Code tại thư mục này"
+                        <Button x:Name="VSCodeButton" Classes="tabAction" AutomationProperties.Name="Mở VS Code tại thư mục này"
                                 ToolTip.Tip="Mở VS Code tại thư mục này" Click="VSCode_Click">
                             <Image Source="/Assets/vscode.png" Width="18" Height="18"/>
                         </Button>
-                        <Button Classes="tabAction copyPath" Content="&#xE8C8;" AutomationProperties.Name="Sao chép đường dẫn mục được chọn"
+                        <Button x:Name="TerminalButton" Classes="tabAction glyph" Content="&#xE756;"
+                                AutomationProperties.Name="Mở Terminal tại thư mục này"
+                                ToolTip.Tip="Mở Terminal tại thư mục này" Click="Terminal_Click"/>
+                        <Button Classes="tabAction glyph" Content="&#xE8C8;" AutomationProperties.Name="Sao chép đường dẫn mục được chọn"
                                 ToolTip.Tip="Sao chép đường dẫn mục chọn; nếu không chọn, sao chép thư mục đang mở" Click="CopyPath_Click"/>
                     </StackPanel>
                     <ScrollViewer Margin="6,2,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
@@ -42,8 +46,8 @@
                     Padding="6,4,6,5">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" Margin="0,0,6,0">
-                        <Button Classes="icon" Content="&#xE72B;" ToolTip.Tip="Quay lại (Alt+←)" Click="Back_Click"/>
-                        <Button Classes="icon" Content="&#xE72A;" ToolTip.Tip="Tiến tới (Alt+→)" Click="Forward_Click"/>
+                        <Button x:Name="BackButton" Classes="icon" Content="&#xE72B;" ToolTip.Tip="Quay lại (Alt+←)" IsEnabled="False" Click="Back_Click"/>
+                        <Button x:Name="ForwardButton" Classes="icon" Content="&#xE72A;" ToolTip.Tip="Tiến tới (Alt+→)" IsEnabled="False" Click="Forward_Click"/>
                         <Button Classes="icon" Content="&#xE74A;" ToolTip.Tip="Lên thư mục cha (Alt+↑)" Click="Up_Click"/>
                         <Button Classes="icon" Content="&#xE72C;" ToolTip.Tip="Làm mới (F5)" Click="Refresh_Click"/>
                         <Button x:Name="HomeButton" Classes="icon" Content="&#xE80F;"
@@ -52,10 +56,22 @@
                         <ToggleButton x:Name="PinButton" Classes="icon" Content="&#xE718;"
                                       AutomationProperties.Name="Ghim thư mục này làm home"
                                       ToolTip.Tip="Ghim thư mục này làm home của tab" Click="Pin_Click"/>
+                        <Button x:Name="FavoritesButton" Classes="icon" Content="&#xE728;"
+                                AutomationProperties.Name="Yêu thích, gần đây và tab đã đóng"
+                                ToolTip.Tip="Yêu thích, gần đây và tab đã đóng" Click="Favorites_Click"/>
                     </StackPanel>
-                    <ToggleButton x:Name="TreeToggle" DockPanel.Dock="Right" Classes="icon" Margin="6,0,0,0"
+                    <ToggleButton x:Name="PreviewToggle" DockPanel.Dock="Right" Classes="icon" Margin="2,0,0,0"
+                                  Content="&#xE8A1;" ToolTip.Tip="Hiện/ẩn khung xem trước"
+                                  AutomationProperties.Name="Hiện/ẩn khung xem trước"
+                                  IsCheckedChanged="PreviewToggle_Changed"/>
+                    <ToggleButton x:Name="TreeToggle" DockPanel.Dock="Right" Classes="icon" Margin="2,0,0,0"
                                   Content="&#xE8A0;" ToolTip.Tip="Hiện/ẩn cây thư mục"
                                   IsCheckedChanged="TreeToggle_Changed"/>
+                    <TextBox x:Name="FilterBox" DockPanel.Dock="Right" Classes="address filter" Width="150" Margin="6,0,0,0"
+                             PlaceholderText="Lọc..." AutomationProperties.Name="Lọc nhanh thư mục hiện tại"
+                             ToolTip.Tip="Lọc theo tên trong thư mục hiện tại (Ctrl+E). Esc để xoá."
+                             TextChanged="FilterBox_TextChanged" KeyDown="FilterBox_KeyDown"
+                             GotFocus="FilterBox_GotFocus"/>
                     <TextBox x:Name="AddressBox" Classes="address"
                              PlaceholderText="Nhập đường dẫn rồi nhấn Enter"
                              KeyDown="AddressBox_KeyDown" GotFocus="AddressBox_GotFocus"/>

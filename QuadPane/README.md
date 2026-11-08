@@ -30,11 +30,26 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 - Mỗi panel có dải tab riêng. Tab mới mở tại `C:\`. Mỗi tab giữ Explorer Browser và lịch sử điều hướng riêng trong phiên chạy; các thư mục và tab đang chọn được khôi phục ở lần mở sau.
 - Mỗi tab có nút Pin để ghim thư mục đang xem làm home riêng. Nút Home chỉ bật khi tab đã ghim; nhấn để quay lại thư mục đó. Ghim được lưu cùng layout, và nhấn Pin lần nữa tại thư mục đã ghim để bỏ ghim.
 - Mở `QuadPane.exe "C:\duong-dan\thu-muc"` để chuyển tới thư mục. Có thể truyền đường dẫn file đang tồn tại để mở thư mục chứa file. Nếu thư mục đã ở một tab, QuadPane chọn tab đó; ưu tiên panel có số nhỏ hơn, rồi tab đang chọn trong panel. Nếu chưa có, QuadPane tạo tab tại panel 1. Lệnh gửi tới cửa sổ đang chạy và đưa cửa sổ lên trước.
-- Nút đóng cửa sổ ẩn QuadPane xuống khay hệ thống. Nhấp icon khay hoặc mở QuadPane lần nữa để hiện cửa sổ cũ; chọn **Thoát** trong menu icon khay để đóng hẳn app.
-- Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn mục đang chọn (nhiều mục: mỗi đường dẫn một dòng; không chọn: thư mục đang mở). Claude/Codex mở trong Windows Terminal nếu có, nếu không dùng PowerShell. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH. Cài đặt ở góc trái thanh trạng thái có tuỳ chọn khởi động cùng Windows cho tài khoản hiện tại.
+- Nút đóng cửa sổ mặc định ẩn QuadPane xuống khay hệ thống (đổi thành thoát hẳn trong Cài đặt). Nhấp icon khay hoặc mở QuadPane lần nữa để hiện cửa sổ cũ; chọn **Thoát** trong menu icon khay để đóng hẳn app.
+- Góc phải dải tab mở Claude Code, Codex, VS Code tại thư mục đang xem hoặc sao chép đường dẫn mục đang chọn (nhiều mục: mỗi đường dẫn một dòng; không chọn: thư mục đang mở). Claude/Codex mở trong Windows Terminal nếu có, nếu không dùng PowerShell. Cần cài các công cụ CLI `claude`, `codex`, `code` trong PATH.
 - Thanh trạng thái hiển thị số mục trong tab; khi thư mục thuộc một Git repository và có `git` trong PATH, thanh hiện branch, số file đã stage/chưa stage, cùng nút Fetch, Pull (`--ff-only`) và Push. Nút Git log và đổi branch chỉ hiện khi có TortoiseGit; chúng mở hộp thoại tương ứng trong TortoiseGit. Không tự tạo merge commit.
 - Ô Everything nằm trên thanh tiêu đề. Tab kết quả giữ panel ban đầu khi đổi panel/tab rồi tiếp tục gõ; QuadPane chọn lại tab đó. Danh sách dùng font hệ thống và các cột Name, Date modified, Type, Size; tooltip của mục hiện đầy đủ đường dẫn. Enter/↓ chuyển tới danh sách; trong danh sách, Enter hoặc nhấp đúp mở mục. Tab tìm kiếm chỉ tồn tại trong phiên chạy.
 - Kết quả Everything hiển thị icon file từ Windows Shell. Nhấp phải vào mục để mở context menu Windows, gồm các lệnh do shell extension đã cài cung cấp.
+- Nút bánh răng ở góc trái thanh trạng thái (hoặc `Ctrl+,`) mở cửa sổ **Cài đặt** kiểu Windows 11. Mọi thay đổi áp dụng và lưu ngay vào `layout.json`:
+  - **Chung:** khởi động cùng Windows, hành vi nút đóng (thu xuống khay / thoát), thư mục cho tab mới.
+  - **Giao diện:** chủ đề, bật/tắt thông tin Git trên thanh trạng thái.
+  - **Công cụ ngoài:** ẩn/hiện nút Claude Code, Codex, VS Code (kèm trạng thái lệnh có trong PATH hay không), chọn mở bằng Windows Terminal hay PowerShell.
+  - **Tìm kiếm:** trạng thái Everything và liên kết tải.
+  - **Phím tắt**, **Cập nhật** (kiểm tra ngay, bật/tắt tự kiểm tra), **Giới thiệu** (mở thư mục cấu hình, nhật ký lỗi, GitHub).
+- **Tab:** nhấp phải vào tab để nhân bản, chuyển sang panel khác hoặc đóng các tab khác. Kéo tab thả vào panel khác để chuyển tab sang đó (tab mới mở lại thư mục, lịch sử lùi/tiến không đi theo). `Ctrl+Shift+T` mở lại tab vừa đóng (nhớ 25 tab trong phiên chạy).
+- **Yêu thích & gần đây:** nút ☆ trên thanh điều hướng (hoặc `Ctrl+B`) mở menu gồm thư mục yêu thích, 20 thư mục gần đây và các tab đã đóng. `Ctrl+Shift+B` thêm / bỏ thư mục đang xem. Sắp xếp và xoá trong Cài đặt → Yêu thích.
+- **Sao chép / di chuyển sang panel kia:** `Shift+F5` / `Shift+F6` dùng hộp thoại tiến trình của Windows (hỏi khi trùng tên, hoàn tác được bằng Ctrl+Z trong Explorer). Panel đích là panel hoạt động ngay trước đó nếu đang hiện, không thì panel cùng hàng.
+- **Lọc nhanh:** ô "Lọc..." trên thanh điều hướng (`Ctrl+E`) chỉ hiện các mục có tên chứa chuỗi đã gõ, dùng `IFolderFilterSite` của Explorer Browser. Mỗi tab giữ bộ lọc riêng; bộ lọc tự xoá khi chuyển thư mục; `Esc` để xoá.
+- **Khung xem trước:** nút cạnh nút cây thư mục (hoặc `Alt+P`) bật preview pane của Windows cho panel đó; trạng thái được lưu.
+- **Terminal:** nút trên dải tab (hoặc ``Ctrl+` ``) mở Windows Terminal, hoặc PowerShell nếu không có, tại thư mục đang xem.
+- **Workspace:** nút trên thanh tiêu đề lưu và chuyển nhanh giữa các bộ tab + thư mục home + bố cục có tên (`Ctrl+Shift+S` để lưu). Đổi tên / xoá trong Cài đặt → Workspace.
+- **Bảng lệnh:** `Ctrl+Shift+P` (hoặc nút trên thanh tiêu đề) để tìm và chạy mọi lệnh, workspace, thư mục yêu thích / gần đây. Tìm không dấu: gõ "mo lai" sẽ ra "Mở lại tab vừa đóng".
+- **Phím tắt tuỳ chỉnh:** Cài đặt → Phím tắt cho đổi, bỏ gán hoặc khôi phục mặc định từng lệnh. Gán phím đang dùng sẽ gỡ phím đó khỏi lệnh cũ. Danh mục lệnh nằm trong `Commands.cs`.
 - Theme đổi theo vòng: **Theo hệ thống → Sáng → Tối**. Phần Explorer nhúng (danh sách file, header cột, cây thư mục, menu chuột phải) và khung cửa sổ đổi màu theo.
 
 ## Logo & icon
@@ -55,7 +70,10 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 | `Shell/ShellTheme.cs` | Dark/light cho Explorer nhúng và khung cửa sổ | `color.ini`, khoá `colorthema` |
 | `PaneView.axaml` | Dải tab, thanh điều hướng + ô địa chỉ + các Explorer Browser | Thanh địa chỉ của mỗi panel |
 | `MainWindow.axaml` | Header, lưới 2×2 với 2 splitter cắt nhau, chế độ 4/3/2/1 khung, phím tắt | `WTL_XSplitterWindow`, khoá `SP0/SP1/SPT` |
-| `LayoutStore.cs` | Lưu bố cục và theme vào `%AppData%\QuadPane\layout.json` | File `.qdr` dạng INI |
+| `SettingsWindow.axaml` | Cửa sổ Cài đặt: thanh mục bên trái, thẻ tuỳ chọn bên phải | Hộp thoại Options |
+| `Commands.cs` | Danh mục lệnh, phím tắt mặc định, `KeyChord` (đổi virtual-key ↔ `Key`) | — |
+| `CommandPalette.cs` / `InputDialog.cs` | Bảng lệnh và hộp thoại nhập tên | — |
+| `LayoutStore.cs` | Lưu bố cục, theme, cài đặt, yêu thích, workspace vào `%AppData%\QuadPane\layout.json` | File `.qdr` dạng INI |
 
 ## Những điểm cần lưu ý
 
@@ -72,18 +90,22 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
 
 ## Phím tắt
 
+Phím mặc định; đổi trong Cài đặt → Phím tắt.
+
 - `Ctrl+1..4`: chọn panel
-- `Ctrl+T` / `Ctrl+W`: mở / đóng tab trong panel đang hoạt động
+- `Ctrl+T` / `Ctrl+W`: mở / đóng tab · `Ctrl+Shift+T`: mở lại tab vừa đóng · `Ctrl+Shift+D`: nhân bản tab
 - `Ctrl+Tab` / `Ctrl+Shift+Tab`: chuyển tab kế tiếp / trước đó
 - `Ctrl+L` / `Alt+D`: ô địa chỉ
-- `Ctrl+F`: chuyển tới ô tìm kiếm Everything trên thanh tiêu đề. Nhập từ khóa để thấy tối đa 200 kết quả đầu tiên trong tab mới tại panel đang chọn.
-- `Alt+←/→/↑`: lùi / tiến / lên thư mục cha
+- `Ctrl+F`: tìm với Everything · `Ctrl+E`: lọc nhanh thư mục hiện tại
+- `Alt+←/→/↑`: lùi / tiến / lên thư mục cha · `F5`: làm mới
+- `Ctrl+B`: yêu thích, gần đây, tab đã đóng · `Ctrl+Shift+B`: thêm / bỏ yêu thích
+- `Shift+F5` / `Shift+F6`: sao chép / di chuyển mục chọn sang panel kia
+- ``Ctrl+` ``: mở Terminal · `Alt+P`: khung xem trước
+- `Ctrl+Shift+S`: lưu workspace · `Ctrl+Shift+P`: bảng lệnh · `Ctrl+,`: Cài đặt
 - Nút Back/Forward trên chuột (kể cả khi driver đổi thành phím Browser Back/Forward hoặc WM_APPCOMMAND): lùi / tiến trong panel đang trỏ tới; bấm nhanh liên tiếp lùi/tiến đủ số bước như File Explorer
-- `F5`: làm mới
 
 ## Hướng mở rộng
 
-- Lọc file
 - Tô màu theo phần mở rộng
-- Danh sách thư mục yêu thích
-- Khung xem trước
+- Đổi tên hàng loạt
+- So sánh / đồng bộ hai thư mục

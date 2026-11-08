@@ -25,6 +25,13 @@ public sealed class ExplorerHost : NativeControlHost
     private uint _cookie;
     private IntPtr _currentPidl;
     private bool _showTree;
+    private bool _showPreview;
+
+    // IExplorerBrowser không cho đọc travel log, nên tự đếm số bước lùi/tiến để bật/tắt nút.
+    private int _backCount, _forwardCount;
+    private int _pendingHistory;      // số lệnh lùi/tiến đã gửi nhưng chưa điều hướng xong
+    private bool _skipNextEntry;      // điều hướng khôi phục sau khi dựng lại browser: không thêm vào lịch sử
+    private NameFilter? _filter;
     private bool _dark;
     private int _itemCount;
 
@@ -37,6 +44,10 @@ public sealed class ExplorerHost : NativeControlHost
     /// <summary>Phát ra khi đã điều hướng xong: (tên hiển thị để sửa, parsing name để lưu).</summary>
     public event Action<string, string>? Navigated;
     public event Action? ItemCountChanged;
+    public event Action? HistoryChanged;
+
+    public bool CanGoBack => _backCount > 0;
+    public bool CanGoForward => _forwardCount > 0;
 
     public string? CurrentParsingName => GetName(_currentPidl, SIGDN_DESKTOPABSOLUTEPARSING);
 
@@ -70,6 +81,37 @@ public sealed class ExplorerHost : NativeControlHost
             if (_browser != null) RecreateBrowser();
         }
     }
+
+    public bool ShowPreview
+    {
+        get => _showPreview;
+        set
+        {
+            if (_showPreview == value) return;
+            _showPreview = value;
+            if (_browser != null) RecreateBrowser();
+        }
+    }
+
+    /// <summary>Chuỗi lọc đang áp dụng (rỗng = không lọc).</summary>
+    public string FilterText => _filter?.Text ?? "";
+
+    /// <summary>
+    /// Chỉ hiện các mục có tên chứa <paramref name="text"/> (không phân biệt hoa thường).
+    /// Dùng IFolderFilterSite của Explorer Browser rồi làm mới view để lọc lại.
+    /// </summary>
+    public bool SetFilter(string text)
+    {
+        text = text.Trim();
+        if (text == FilterText) return true;
+        _filter = text.Length == 0 ? null : new NameFilter(text);
+        bool ok = ApplyFilter();
+        RefreshView();
+        return ok;
+    }
+
+    private bool ApplyFilter() =>
+        _browser is null || (_browser is IFolderFilterSite site && site.SetFilter(_filter) >= 0);
 
     /// <summary>Chế độ tối cho phần Explorer bên trong.</summary>
     public bool Dark
@@ -127,6 +169,7 @@ public sealed class ExplorerHost : NativeControlHost
         Marshal.ThrowExceptionForHR(_browser.SetPropertyBag(PropertyBagName));
         _sink = new EventSink(this);
         Marshal.ThrowExceptionForHR(_browser.Advise(_sink, out _cookie));
+        ApplyFilter();
     }
 
     private void DestroyBrowser()
@@ -151,6 +194,10 @@ public sealed class ExplorerHost : NativeControlHost
         {
             DestroyBrowser();
             CreateBrowser();
+            // Browser mới có travel log trống
+            _backCount = _forwardCount = _pendingHistory = 0;
+            _skipNextEntry = restorePidl != IntPtr.Zero;
+            HistoryChanged?.Invoke();
             if (restorePidl != IntPtr.Zero)
                 Marshal.ThrowExceptionForHR(_browser!.BrowseToIDList(restorePidl, SBSP_ABSOLUTE));
         }
@@ -199,8 +246,25 @@ public sealed class ExplorerHost : NativeControlHost
         finally { ILFree(pidl); }
     }
 
-    public void GoBack() => _browser?.BrowseToIDList(IntPtr.Zero, SBSP_NAVIGATEBACK);
-    public void GoForward() => _browser?.BrowseToIDList(IntPtr.Zero, SBSP_NAVIGATEFORWARD);
+    public void GoBack() => StepHistory(back: true);
+    public void GoForward() => StepHistory(back: false);
+
+    private void StepHistory(bool back)
+    {
+        if (_browser == null || (back ? _backCount : _forwardCount) == 0) return;
+        int step = back ? 1 : -1;
+        // Cập nhật trước khi gọi: BrowseToIDList có thể phát OnNavigationComplete đồng bộ
+        _backCount -= step;
+        _forwardCount += step;
+        _pendingHistory++;
+        if (_browser.BrowseToIDList(IntPtr.Zero, back ? SBSP_NAVIGATEBACK : SBSP_NAVIGATEFORWARD) < 0)
+        {
+            _backCount += step;
+            _forwardCount -= step;
+            _pendingHistory--;
+        }
+        HistoryChanged?.Invoke();
+    }
     public void GoUp() => _browser?.BrowseToIDList(IntPtr.Zero, SBSP_PARENT);
 
     public void RefreshView()
@@ -303,6 +367,15 @@ public sealed class ExplorerHost : NativeControlHost
 
     private void OnNavigationComplete(IntPtr pidl)
     {
+        if (_pendingHistory > 0) _pendingHistory--;
+        else if (_skipNextEntry) _skipNextEntry = false;
+        else if (_currentPidl != IntPtr.Zero)
+        {
+            // Điều hướng mới (mở thư mục, ô địa chỉ, lên cấp...): thêm một bước lùi, xoá các bước tiến
+            _backCount++;
+            _forwardCount = 0;
+        }
+        HistoryChanged?.Invoke();
         _itemCount = 0;
         if (_currentPidl != IntPtr.Zero) ILFree(_currentPidl);
         _currentPidl = ILClone(pidl);
@@ -312,6 +385,12 @@ public sealed class ExplorerHost : NativeControlHost
         Navigated?.Invoke(display, parsing);
         Dispatcher.UIThread.Post(UpdateItemCount, DispatcherPriority.Background);
         Dispatcher.UIThread.Post(ApplyTheme, DispatcherPriority.Background);
+    }
+
+    private void OnNavigationFailed()
+    {
+        if (_pendingHistory > 0) _pendingHistory--;
+        _skipNextEntry = false;
     }
 
     [ComVisible(true), ClassInterface(ClassInterfaceType.None)]
@@ -329,9 +408,40 @@ public sealed class ExplorerHost : NativeControlHost
 
         public int GetPaneState(ref Guid pane, out uint state)
         {
-            state = pane == EP_NavPane && !owner._showTree ? 0x20002u : 0u; // EPS_FORCE | EPS_DEFAULT_OFF
+            // EPS_FORCE | EPS_DEFAULT_OFF (0x20002) hoặc EPS_FORCE | EPS_DEFAULT_ON (0x20001)
+            if (pane == EP_NavPane) state = owner._showTree ? 0u : 0x20002u;
+            else if (pane == EP_PreviewPane) state = owner._showPreview ? 0x20001u : 0x20002u;
+            else state = 0;
             return 0;
         }
+    }
+
+    /// <summary>
+    /// Lọc theo tên. DefView có thể gọi từ thread liệt kê nền, nên lớp này bất biến và chỉ dùng API thread-safe.
+    /// </summary>
+    [ComVisible(true), ClassInterface(ClassInterfaceType.None)]
+    private sealed class NameFilter(string text) : IFolderFilter
+    {
+        public string Text { get; } = text;
+
+        public int ShouldShow(IntPtr psf, IntPtr pidlFolder, IntPtr pidlItem)
+        {
+            if (pidlFolder == IntPtr.Zero || pidlItem == IntPtr.Zero) return 0;
+            var full = ILCombine(pidlFolder, pidlItem);
+            if (full == IntPtr.Zero) return 0;
+            try
+            {
+                var name = GetName(full, SIGDN_PARENTRELATIVEPARSING) ?? "";
+                var display = GetName(full, SIGDN_NORMALDISPLAY) ?? "";
+                bool match = name.Contains(Text, StringComparison.CurrentCultureIgnoreCase) ||
+                             display.Contains(Text, StringComparison.CurrentCultureIgnoreCase);
+                return match ? 0 : 1; // S_OK hiện, S_FALSE ẩn
+            }
+            finally { ILFree(full); }
+        }
+
+        // E_NOTIMPL: giữ cờ liệt kê mặc định (tôn trọng tuỳ chọn hiện file ẩn của Windows)
+        public int GetEnumFlags(IntPtr psf, IntPtr pidlFolder, IntPtr phwnd, IntPtr pgrfFlags) => unchecked((int)0x80004001);
     }
 
     [ComVisible(true)]
@@ -340,6 +450,6 @@ public sealed class ExplorerHost : NativeControlHost
         public int OnNavigationPending(IntPtr pidlFolder) => 0;
         public int OnViewCreated(object psv) { owner.OnViewCreated(); return 0; }
         public int OnNavigationComplete(IntPtr pidlFolder) { owner.OnNavigationComplete(pidlFolder); return 0; }
-        public int OnNavigationFailed(IntPtr pidlFolder) => 0;
+        public int OnNavigationFailed(IntPtr pidlFolder) { owner.OnNavigationFailed(); return 0; }
     }
 }

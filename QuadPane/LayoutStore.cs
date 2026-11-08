@@ -27,12 +27,60 @@ public sealed class LayoutData
     public string[][] TabIds { get; set; } = new string[4][];
     public int[] ActiveTabs { get; set; } = new int[4];
     public bool[] ShowTree { get; set; } = new bool[4];
+    public bool[] ShowPreview { get; set; } = new bool[4];
 
     public int? WindowX { get; set; }
     public int? WindowY { get; set; }
     public double WindowWidth { get; set; } = 1280;
     public double WindowHeight { get; set; } = 800;
     public bool Maximized { get; set; }
+
+    // ---- Cài đặt ----
+    public bool CloseToTray { get; set; } = true;
+    public string? NewTabPath { get; set; }
+    public bool ShowGitBar { get; set; } = true;
+    public bool ShowClaudeButton { get; set; } = true;
+    public bool ShowCodexButton { get; set; } = true;
+    public bool ShowVSCodeButton { get; set; } = true;
+    public bool ShowTerminalButton { get; set; } = true;
+    public bool UseWindowsTerminal { get; set; } = true;
+    public bool AutoCheckUpdates { get; set; } = true;
+
+    /// <summary>Phím tắt người dùng đã đổi: tên lệnh → các tổ hợp phím. Lệnh không có ở đây dùng mặc định.</summary>
+    public Dictionary<string, string[]> Shortcuts { get; set; } = new();
+    public List<string> Favorites { get; set; } = [];
+    public List<string> RecentFolders { get; set; } = [];
+    public List<Workspace> Workspaces { get; set; } = [];
+
+    public const int MaxRecentFolders = 20;
+
+    public void AddRecent(string path)
+    {
+        RecentFolders.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+        RecentFolders.Insert(0, path);
+        if (RecentFolders.Count > MaxRecentFolders) RecentFolders.RemoveRange(MaxRecentFolders, RecentFolders.Count - MaxRecentFolders);
+    }
+
+    public bool IsFavorite(string? path) =>
+        path is not null && Favorites.Any(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Thư mục mở khi tạo tab mới; mặc định là C:\.</summary>
+    [JsonIgnore]
+    public string EffectiveNewTabPath =>
+        !string.IsNullOrWhiteSpace(NewTabPath) && Directory.Exists(NewTabPath) ? NewTabPath : @"C:\";
+}
+
+/// <summary>Bộ tab và bố cục có tên, chuyển qua lại nhanh (giống file .qdr của Q-Dir).</summary>
+public sealed class Workspace
+{
+    public string Name { get; set; } = "";
+    public LayoutMode Mode { get; set; } = LayoutMode.Quad;
+    public int ActivePane { get; set; }
+    public string?[][] TabPaths { get; set; } = new string?[4][];
+    public string?[][] TabHomes { get; set; } = new string?[4][];
+    public int[] ActiveTabs { get; set; } = new int[4];
+    public bool[] ShowTree { get; set; } = new bool[4];
+    public bool[] ShowPreview { get; set; } = new bool[4];
 }
 
 public static class LayoutStore
@@ -81,6 +129,19 @@ public static class LayoutStore
         if (data.TabHomes is not { Length: 4 }) data.TabHomes = new string?[4][];
         if (data.TabIds is not { Length: 4 }) data.TabIds = new string[4][];
         if (data.ActiveTabs is not { Length: 4 }) data.ActiveTabs = new int[4];
+        if (data.ShowPreview is not { Length: 4 }) data.ShowPreview = new bool[4];
+        data.Shortcuts ??= new();
+        data.Favorites ??= [];
+        data.RecentFolders ??= [];
+        data.Workspaces ??= [];
+        data.Workspaces.RemoveAll(w => w is null || w.TabPaths is not { Length: 4 } || string.IsNullOrWhiteSpace(w.Name));
+        foreach (var w in data.Workspaces)
+        {
+            if (w.TabHomes is not { Length: 4 }) w.TabHomes = new string?[4][];
+            if (w.ActiveTabs is not { Length: 4 }) w.ActiveTabs = new int[4];
+            if (w.ShowTree is not { Length: 4 }) w.ShowTree = new bool[4];
+            if (w.ShowPreview is not { Length: 4 }) w.ShowPreview = new bool[4];
+        }
 
         // Panel nào chưa có đường dẫn thì dùng thư mục mặc định
         var defaults = DefaultPaths();
@@ -101,6 +162,8 @@ public static class LayoutStore
         }
         return data;
     }
+
+    public static string FolderPath => Path.GetDirectoryName(FilePath)!;
 
     public static void Save(LayoutData data)
     {

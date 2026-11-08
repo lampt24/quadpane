@@ -1,0 +1,496 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="QuadPane.SettingsWindow"
+        Title="Cài đặt QuadPane"
+        FontFamily="Segoe UI Variable, Segoe UI"
+        Icon="/Assets/QuadPane.ico"
+        Width="900" Height="640" MinWidth="680" MinHeight="460"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowFallbackBrush}">
+
+    <Window.Styles>
+        <!-- Thanh mục bên trái -->
+        <Style Selector="ListBox.nav">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem">
+            <Setter Property="Margin" Value="8,1"/>
+            <Setter Property="Padding" Value="4,9,12,9"/>
+            <Setter Property="CornerRadius" Value="5"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
+        </Style>
+        <Style Selector="Border.navIndicator">
+            <Setter Property="Width" Value="3"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="Margin" Value="0,0,9,0"/>
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Opacity" Value="0"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected Border.navIndicator">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+        <Style Selector="TextBlock.navIcon">
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.navText">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Nội dung -->
+        <Style Selector="TextBlock.pageTitle">
+            <Setter Property="FontSize" Value="26"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+        <Style Selector="TextBlock.groupHeader">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,20,0,8"/>
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="MinHeight" Value="68"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style Selector="TextBlock.cardIcon">
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Margin" Value="0,0,16,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.cardTitle">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style Selector="TextBlock.cardDescription">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+        </Style>
+        <Style Selector="Grid.cardRow > StackPanel">
+            <Setter Property="Grid.Column" Value="1"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,16,0"/>
+        </Style>
+        <Style Selector="ToggleSwitch">
+            <Setter Property="OnContent" Value="Bật"/>
+            <Setter Property="OffContent" Value="Tắt"/>
+            <Setter Property="Grid.Column" Value="2"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+        </Style>
+        <Style Selector="Border.separated">
+            <Setter Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        </Style>
+        <Style Selector="Border.kbd">
+            <Setter Property="Background" Value="{DynamicResource SegmentBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1,1,1,2"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="7,2"/>
+        </Style>
+        <Style Selector="Border.kbd TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="240,*">
+        <!-- ===== Thanh mục ===== -->
+        <Border Background="{DynamicResource TitleSurfaceBrush}"
+                BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="20,20,20,16">
+                    <Image Source="/Assets/logo-256.png" Width="28" Height="28"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="QuadPane" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="NavVersion" FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+                <ListBox x:Name="NavList" Classes="nav" SelectionMode="Single,AlwaysSelected"
+                         SelectionChanged="NavList_SelectionChanged">
+                    <ListBoxItem Tag="General">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="navIndicator"/>
+                            <TextBlock Classes="navIcon" Text="&#xE713;"/>
+                            <TextBlock Classes="navText" Text="Chung"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Appearance">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="navIndicator"/>
+                            <TextBlock Classes="navIcon" Text="&#xE790;"/>
+                            <TextBlock Classes="navText" Text="Giao diện"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Tools">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="navIndicator"/>
+                            <TextBlock Classes="navIcon" Text="&#xE756;"/>
+                            <TextBlock Classes="navText" Text="Công cụ ngoài"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Favorites">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="navIndicator"/>
+                            <TextBlock Classes="navIcon" Text="&#xE734;"/>
+                            <TextBlock Classes="navText" Text="Yêu thích"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Workspaces">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="navIndicator"/>
+                            <TextBlock Classes="navIcon" Text="&#xE7C4;"/>
+                            <TextBlock Classes="navText" Text="Workspace"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Search">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="navIndicator"/>
+                            <TextBlock Classes="navIcon" Text="&#xE721;"/>
+                            <TextBlock Classes="navText" Text="Tìm kiếm"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Shortcuts">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="navIndicator"/>
+                            <TextBlock Classes="navIcon" Text="&#xE765;"/>
+                            <TextBlock Classes="navText" Text="Phím tắt"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="Update">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="navIndicator"/>
+                            <TextBlock Classes="navIcon" Text="&#xE895;"/>
+                            <TextBlock Classes="navText" Text="Cập nhật"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="About">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Classes="navIndicator"/>
+                            <TextBlock Classes="navIcon" Text="&#xE946;"/>
+                            <TextBlock Classes="navText" Text="Giới thiệu"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- ===== Nội dung ===== -->
+        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="32,24,32,32" MaxWidth="780" HorizontalAlignment="Stretch">
+                <TextBlock x:Name="PageTitle" Classes="pageTitle"/>
+
+                <!-- Chung -->
+                <StackPanel x:Name="GeneralPage">
+                    <TextBlock Classes="groupHeader" Text="Khởi động" Margin="0,0,0,8"/>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE7E8;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Khởi động cùng Windows"/>
+                                <TextBlock Classes="cardDescription" Text="Mở QuadPane khi đăng nhập vào tài khoản Windows hiện tại."/>
+                            </StackPanel>
+                            <ToggleSwitch x:Name="StartupSwitch" IsCheckedChanged="StartupSwitch_Changed"/>
+                        </Grid>
+                    </Border>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE8BB;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Khi đóng cửa sổ"/>
+                                <TextBlock Classes="cardDescription" Text="Thu xuống khay giúp mở lại tức thì, giữ nguyên tab và lịch sử điều hướng."/>
+                            </StackPanel>
+                            <ComboBox x:Name="CloseActionBox" Grid.Column="2" MinWidth="220"
+                                      SelectionChanged="CloseActionBox_SelectionChanged">
+                                <ComboBoxItem Content="Thu xuống khay hệ thống"/>
+                                <ComboBoxItem Content="Thoát QuadPane"/>
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Classes="groupHeader" Text="Tab"/>
+                    <Border Classes="card">
+                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*">
+                            <TextBlock Classes="cardIcon" Text="&#xE8F4;" Grid.RowSpan="2" VerticalAlignment="Top" Margin="0,2,16,0"/>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Classes="cardTitle" Text="Thư mục cho tab mới"/>
+                                <TextBlock Classes="cardDescription" Text="Thư mục mở khi nhấn + hoặc Ctrl+T. Để trống sẽ dùng C:\."/>
+                            </StackPanel>
+                            <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,10,0,0">
+                                <TextBox x:Name="NewTabPathBox" PlaceholderText="C:\"
+                                         AutomationProperties.Name="Thư mục cho tab mới"
+                                         LostFocus="NewTabPathBox_LostFocus" KeyDown="NewTabPathBox_KeyDown"/>
+                                <Button Grid.Column="1" Content="Chọn thư mục..." Click="BrowseNewTab_Click"/>
+                                <Button Grid.Column="2" Content="Dùng mặc định" Click="ResetNewTab_Click"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <TextBlock x:Name="NewTabError" Foreground="#E81123" FontSize="12" Margin="56,2,0,0"
+                               TextWrapping="Wrap" IsVisible="False"/>
+                </StackPanel>
+
+                <!-- Giao diện -->
+                <StackPanel x:Name="AppearancePage" IsVisible="False">
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE793;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Chủ đề"/>
+                                <TextBlock Classes="cardDescription" Text="Áp dụng cho QuadPane, danh sách file Explorer và menu chuột phải."/>
+                            </StackPanel>
+                            <ComboBox x:Name="ThemeBox" Grid.Column="2" MinWidth="200"
+                                      SelectionChanged="ThemeBox_SelectionChanged">
+                                <ComboBoxItem Content="Theo hệ thống"/>
+                                <ComboBoxItem Content="Sáng"/>
+                                <ComboBoxItem Content="Tối"/>
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Classes="groupHeader" Text="Thanh trạng thái"/>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE8AB;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Thông tin Git"/>
+                                <TextBlock Classes="cardDescription" Text="Hiện branch, số file thay đổi và các nút Fetch / Pull / Push khi thư mục thuộc một Git repository."/>
+                            </StackPanel>
+                            <ToggleSwitch x:Name="GitBarSwitch" IsCheckedChanged="Setting_Changed"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Công cụ ngoài -->
+                <StackPanel x:Name="ToolsPage" IsVisible="False">
+                    <TextBlock Classes="groupHeader" Text="Nút trên dải tab" Margin="0,0,0,8"/>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <Image Source="/Assets/claude.png" Width="20" Height="20" Margin="2,0,18,0"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Claude Code"/>
+                                <TextBlock x:Name="ClaudeStatus" Classes="cardDescription"/>
+                            </StackPanel>
+                            <ToggleSwitch x:Name="ClaudeSwitch" IsCheckedChanged="Setting_Changed"/>
+                        </Grid>
+                    </Border>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <Path Width="20" Height="20" Margin="2,0,18,0" Stretch="Uniform" Fill="{DynamicResource TabSelectedTextBrush}" Data="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Codex"/>
+                                <TextBlock x:Name="CodexStatus" Classes="cardDescription"/>
+                            </StackPanel>
+                            <ToggleSwitch x:Name="CodexSwitch" IsCheckedChanged="Setting_Changed"/>
+                        </Grid>
+                    </Border>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <Image Source="/Assets/vscode.png" Width="20" Height="20" Margin="2,0,18,0"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Visual Studio Code"/>
+                                <TextBlock x:Name="VSCodeStatus" Classes="cardDescription"/>
+                            </StackPanel>
+                            <ToggleSwitch x:Name="VSCodeSwitch" IsCheckedChanged="Setting_Changed"/>
+                        </Grid>
+                    </Border>
+
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE756;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Terminal"/>
+                                <TextBlock Classes="cardDescription" Text="Mở Windows Terminal (hoặc PowerShell) tại thư mục đang xem."/>
+                            </StackPanel>
+                            <ToggleSwitch x:Name="TerminalButtonSwitch" IsCheckedChanged="Setting_Changed"/>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Classes="groupHeader" Text="Terminal"/>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE756;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Mở Claude Code và Codex bằng Windows Terminal"/>
+                                <TextBlock x:Name="TerminalStatus" Classes="cardDescription"/>
+                            </StackPanel>
+                            <ToggleSwitch x:Name="TerminalSwitch" IsCheckedChanged="Setting_Changed"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Tìm kiếm -->
+                <StackPanel x:Name="SearchPage" IsVisible="False">
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE721;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Everything"/>
+                                <TextBlock x:Name="EverythingStatus" Classes="cardDescription"/>
+                            </StackPanel>
+                            <Button x:Name="EverythingDownload" Grid.Column="2" Content="Tải Everything"
+                                    Click="EverythingDownload_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE946;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Cách dùng"/>
+                                <TextBlock Classes="cardDescription" Text="Nhấn Ctrl+F rồi gõ từ khoá. Kết quả mở trong tab mới ở panel đang chọn, tối đa 200 mục. Enter hoặc ↓ để chuyển vào danh sách, nhấp phải để mở menu Windows."/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Yêu thích -->
+                <StackPanel x:Name="FavoritesPage" IsVisible="False">
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                        <TextBlock Classes="cardDescription" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="Mở bằng nút ☆ trên thanh điều hướng của panel hoặc Ctrl+B. Ctrl+Shift+B để thêm / bỏ thư mục đang xem."/>
+                        <Button Grid.Column="1" Content="Thêm thư mục..." Click="AddFavorite_Click"/>
+                    </Grid>
+                    <Border Classes="card" Padding="0">
+                        <StackPanel x:Name="FavoriteList"/>
+                    </Border>
+                    <TextBlock Classes="groupHeader" Text="Gần đây"/>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE81C;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Thư mục gần đây"/>
+                                <TextBlock x:Name="RecentStatus" Classes="cardDescription"/>
+                            </StackPanel>
+                            <Button x:Name="ClearRecentButton" Grid.Column="2" Content="Xoá lịch sử" Click="ClearRecent_Click"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Workspace -->
+                <StackPanel x:Name="WorkspacesPage" IsVisible="False">
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                        <TextBlock Classes="cardDescription" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="Workspace lưu toàn bộ tab, thư mục home, cây thư mục, khung xem trước và bố cục. Chuyển nhanh bằng nút workspace trên thanh tiêu đề hoặc bảng lệnh (Ctrl+Shift+P)."/>
+                        <Button Grid.Column="1" Content="Lưu bộ tab hiện tại..." Click="SaveWorkspace_Click"/>
+                    </Grid>
+                    <Border Classes="card" Padding="0">
+                        <StackPanel x:Name="WorkspaceList"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Phím tắt -->
+                <StackPanel x:Name="ShortcutsPage" IsVisible="False">
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                        <TextBlock Classes="cardDescription" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="Bấm Đổi rồi nhấn tổ hợp phím mới. Esc để huỷ, Backspace để bỏ gán. Phím trùng sẽ được gỡ khỏi lệnh cũ."/>
+                        <Button Grid.Column="1" Content="Khôi phục tất cả" Click="ResetAllShortcuts_Click"/>
+                    </Grid>
+                    <TextBlock x:Name="ShortcutMessage" Classes="cardDescription" Foreground="{DynamicResource AccentBrush}"
+                               IsVisible="False" Margin="0,4,0,0"/>
+                    <StackPanel x:Name="ShortcutList"/>
+                    <TextBlock Classes="cardDescription" Margin="0,12,0,0"
+                               Text="Nút Back / Forward trên chuột luôn lùi / tiến trong panel đang trỏ tới."/>
+                </StackPanel>
+
+                <!-- Cập nhật -->
+                <StackPanel x:Name="UpdatePage" IsVisible="False">
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE895;"/>
+                            <StackPanel>
+                                <TextBlock x:Name="UpdateVersion" Classes="cardTitle"/>
+                                <TextBlock x:Name="UpdateStatus" Classes="cardDescription"/>
+                            </StackPanel>
+                            <Button x:Name="CheckUpdateButton" Grid.Column="2" Content="Kiểm tra cập nhật"
+                                    Click="CheckUpdate_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE823;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Tự động kiểm tra cập nhật"/>
+                                <TextBlock Classes="cardDescription" Text="Kiểm tra GitHub khi khởi động và mỗi 2 phút. Chỉ tải về khi bạn xác nhận."/>
+                            </StackPanel>
+                            <ToggleSwitch x:Name="AutoUpdateSwitch" IsCheckedChanged="Setting_Changed"/>
+                        </Grid>
+                    </Border>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE8A7;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Ghi chú phát hành"/>
+                                <TextBlock Classes="cardDescription" Text="Xem các thay đổi của từng phiên bản trên GitHub."/>
+                            </StackPanel>
+                            <Button Grid.Column="2" Content="Mở GitHub Releases" Click="Releases_Click"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Giới thiệu -->
+                <StackPanel x:Name="AboutPage" IsVisible="False">
+                    <Border Classes="card" Padding="20">
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <Image Source="/Assets/logo-256.png" Width="56" Height="56"/>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="QuadPane" FontSize="20" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="AboutVersion" Classes="cardDescription"/>
+                                <TextBlock Classes="cardDescription" Text="Trình quản lý file 4 panel dùng Explorer của Windows."/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Classes="groupHeader" Text="Dữ liệu"/>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE838;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Thư mục cấu hình"/>
+                                <TextBlock x:Name="ConfigPathText" Classes="cardDescription"/>
+                            </StackPanel>
+                            <Button Grid.Column="2" Content="Mở thư mục" Click="OpenConfig_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xEBE8;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Nhật ký lỗi"/>
+                                <TextBlock x:Name="LogPathText" Classes="cardDescription"/>
+                            </StackPanel>
+                            <Button x:Name="OpenLogButton" Grid.Column="2" Content="Mở nhật ký" Click="OpenLog_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE774;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Mã nguồn"/>
+                                <TextBlock x:Name="RepoText" Classes="cardDescription"/>
+                            </StackPanel>
+                            <Button Grid.Column="2" Content="Mở GitHub" Click="Repo_Click"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
