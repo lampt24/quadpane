@@ -10,7 +10,7 @@
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" Margin="4,2,5,0">
                         <Button x:Name="ClaudeButton" Classes="tabAction" AutomationProperties.Name="Mở Claude Code tại thư mục này"
                                 ToolTip.Tip="Mở Claude Code tại thư mục này" Click="Claude_Click">
-                            <Image Source="/Assets/claude.png" Width="18" Height="18"/>
+                            <Image Source="/Assets/claude.png" Width="20" Height="20"/>
                         </Button>
                         <Button x:Name="CodexButton" Classes="tabAction" AutomationProperties.Name="Mở Codex tại thư mục này"
                                 ToolTip.Tip="Mở Codex tại thư mục này" Click="Codex_Click">

@@ -249,7 +249,7 @@
         </Style>
         <Style Selector="Button.tabAction.glyph">
             <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="18"/>
         </Style>
         <Style Selector="Button.tabAction:pointerover">
             <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
