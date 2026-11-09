@@ -20,11 +20,14 @@ public partial class PaneView : UserControl
         public required Border Container { get; init; }
         public required TextBlock Label { get; init; }
         public required Button CloseButton { get; init; }
+        public required TextBlock PinIcon { get; init; }
         public required string Id { get; init; }
         public SearchResultsView? Search { get; init; }
         public string? Path { get; set; }
         public string? Display { get; set; }
         public string? HomePath { get; set; }
+        /// <summary>Tab ghim: luôn nằm đầu dải tab, không đóng bằng nút ×, chuột giữa hay Ctrl+W.</summary>
+        public bool IsPinned { get; set; }
     }
 
     private readonly List<PaneTab> _tabs = [];
@@ -40,6 +43,8 @@ public partial class PaneView : UserControl
     private PaneTab? _dragTab;
     private Avalonia.Point _dragStart;
     private bool _dragging;
+    /// <summary>Vị trí tab sẽ chuyển tới khi thả trong dải tab của chính panel; -1 khi con trỏ ở ngoài dải tab.</summary>
+    private int _dropIndex = -1;
 
     public int Index { get; }
     public event Action<PaneView>? Activated;
@@ -65,6 +70,8 @@ public partial class PaneView : UserControl
     public string?[] TabPaths => _tabs.Where(t => t.Search is null).Select(t => t.Path).ToArray();
     public string?[] TabHomes => _tabs.Where(t => t.Search is null).Select(t => t.HomePath).ToArray();
     public string[] TabIds => _tabs.Where(t => t.Search is null).Select(t => t.Id).ToArray();
+    public bool[] TabPinned => _tabs.Where(t => t.Search is null).Select(t => t.IsPinned).ToArray();
+    private int PinnedCount => _tabs.Count(t => t.IsPinned);
     public int ActiveTabIndex => Math.Clamp(_tabs.Take(_selectedIndex).Count(t => t.Search is null), 0, Math.Max(0, TabPaths.Length - 1));
 
     public int FindTab(string path)
@@ -118,7 +125,7 @@ public partial class PaneView : UserControl
         : this(index, [initialPath], [$"QuadPane.Pane{index}"], 0, showTree, LayoutStore.DefaultPath(index)) { }
 
     public PaneView(int index, string?[] paths, string[] ids, int selectedIndex, bool showTree,
-        string defaultPath, string?[]? homes = null, bool showPreview = false)
+        string defaultPath, string?[]? homes = null, bool showPreview = false, bool[]? pinned = null)
     {
         InitializeComponent();
         Index = index;
@@ -129,7 +136,8 @@ public partial class PaneView : UserControl
         PreviewToggle.IsChecked = showPreview;
         _filterTimer.Tick += (_, _) => { _filterTimer.Stop(); ApplyFilterText(); };
         for (int i = 0; i < paths.Length; i++)
-            AddTab(paths[i], ids[i], select: false, home: homes is not null && i < homes.Length ? homes[i] : null);
+            AddTab(paths[i], ids[i], select: false, home: homes is not null && i < homes.Length ? homes[i] : null,
+                pinned: pinned is not null && i < pinned.Length && pinned[i]);
         if (_tabs.Count == 0) AddTab(defaultPath, $"QuadPane.Pane{index}", select: false);
         SelectTab(Math.Clamp(selectedIndex, 0, _tabs.Count - 1), focus: false);
         AddHandler(PointerPressedEvent, (_, e) =>
@@ -159,8 +167,9 @@ public partial class PaneView : UserControl
     }
 
     private void AddTab(string? path, string id, bool select, SearchResultsView? search = null,
-        bool focus = true, string? home = null, int insertAt = -1)
+        bool focus = true, string? home = null, int insertAt = -1, bool pinned = false)
     {
+        pinned &= search is null;
         var host = new ExplorerHost
         {
             InitialPath = path,
@@ -178,7 +187,7 @@ public partial class PaneView : UserControl
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
         };
         label.Classes.Add("tabTitle");
-        var selectButton = new Button { Content = label };
+        var selectButton = new Button();
         selectButton.Classes.Add("tabSelect");
         var closeButton = new Button
         {
@@ -189,13 +198,26 @@ public partial class PaneView : UserControl
         };
         closeButton.Classes.Add("tabClose");
         ToolTip.SetTip(closeButton, "Đóng tab (Ctrl+W)");
+        var pinIcon = new TextBlock
+        {
+            Text = "\uE718",
+            IsVisible = pinned,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+        };
+        pinIcon.Classes.Add("tabPin");
+        var selectContent = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 5 };
+        selectContent.Children.Add(pinIcon);
+        selectContent.Children.Add(label);
+        selectButton.Content = selectContent;
         var row = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 1 };
         row.Children.Add(selectButton);
         row.Children.Add(closeButton);
         var container = new Border { Child = row };
         container.Classes.Add("tabItem");
         var tab = new PaneTab { Host = host, Search = search, Container = container, Label = label,
-            CloseButton = closeButton, Id = id, Path = path, Display = path, HomePath = home };
+            CloseButton = closeButton, PinIcon = pinIcon, Id = id, Path = path, Display = path, HomePath = home,
+            IsPinned = pinned };
+        container.Classes.Set("pinned", pinned);
         host.Navigated += (display, parsing) =>
         {
             if (!_tabs.Contains(tab)) return;
@@ -227,11 +249,14 @@ public partial class PaneView : UserControl
         {
             if (e.GetCurrentPoint(container).Properties.IsMiddleButtonPressed)
             {
-                CloseTab(tab);
+                if (!tab.IsPinned) CloseTab(tab);
                 e.Handled = true;
             }
         };
         int position = insertAt < 0 || insertAt > _tabs.Count ? _tabs.Count : insertAt;
+        // Tab ghim luôn đứng trước mọi tab thường
+        int pinnedCount = PinnedCount;
+        position = pinned ? Math.Min(position, pinnedCount) : Math.Max(position, pinnedCount);
         if (position <= _selectedIndex && position < _tabs.Count) _selectedIndex++;
         _tabs.Insert(position, tab);
         TabStrip.Children.Insert(position, container);
@@ -244,7 +269,7 @@ public partial class PaneView : UserControl
     private void UpdateCloseButtons()
     {
         bool canClose = _tabs.Count > 1;
-        foreach (var tab in _tabs) tab.CloseButton.IsVisible = canClose;
+        foreach (var tab in _tabs) tab.CloseButton.IsVisible = canClose && !tab.IsPinned;
     }
 
     private static string GetTabTitle(string? path)
@@ -341,8 +366,8 @@ public partial class PaneView : UserControl
     }
 
     /// <summary>Mở thư mục trong tab mới (dùng cho mở lại tab, yêu thích, chuyển tab giữa các panel).</summary>
-    public void OpenTab(string path, string? home, bool select = true) =>
-        AddTab(path, NewTabId(Index), select, home: home);
+    public void OpenTab(string path, string? home, bool select = true, bool pinned = false) =>
+        AddTab(path, NewTabId(Index), select, home: home, pinned: pinned);
 
     public void DuplicateCurrentTab()
     {
@@ -352,9 +377,9 @@ public partial class PaneView : UserControl
     }
 
     /// <summary>Đường dẫn và home của tab; null với tab kết quả tìm kiếm.</summary>
-    public (string Path, string? Home)? TabInfo(int index) =>
+    public (string Path, string? Home, bool Pinned)? TabInfo(int index) =>
         index >= 0 && index < _tabs.Count && _tabs[index] is { Search: null, Path: { } path } tab
-            ? (path, tab.HomePath) : null;
+            ? (path, tab.HomePath, tab.IsPinned) : null;
 
     /// <summary>Gỡ tab khỏi panel mà không ghi vào danh sách tab đã đóng (khi chuyển sang panel khác).</summary>
     public void RemoveTab(int index)
@@ -363,7 +388,8 @@ public partial class PaneView : UserControl
     }
 
     /// <summary>Thay toàn bộ tab của panel (khi chuyển workspace).</summary>
-    public void ReplaceTabs(string?[] paths, string?[]? homes, int selectedIndex, bool showTree, bool showPreview)
+    public void ReplaceTabs(string?[] paths, string?[]? homes, int selectedIndex, bool showTree, bool showPreview,
+        bool[]? pinned = null)
     {
         foreach (var tab in _tabs)
         {
@@ -383,7 +409,8 @@ public partial class PaneView : UserControl
         PreviewToggle.IsChecked = showPreview;
         for (int i = 0; i < paths.Length; i++)
             if (!string.IsNullOrWhiteSpace(paths[i]))
-                AddTab(paths[i], NewTabId(Index), select: false, home: homes is not null && i < homes.Length ? homes[i] : null);
+                AddTab(paths[i], NewTabId(Index), select: false, home: homes is not null && i < homes.Length ? homes[i] : null,
+                    pinned: pinned is not null && i < pinned.Length && pinned[i]);
         if (_tabs.Count == 0) AddTab(_defaultPath, NewTabId(Index), select: false);
         SelectTab(Math.Clamp(selectedIndex, 0, _tabs.Count - 1), focus: false);
     }
@@ -464,7 +491,12 @@ public partial class PaneView : UserControl
             return item;
         }
         bool isFolder = tab.Search is null;
+        int index = _tabs.IndexOf(tab);
+        var (zoneStart, zoneEnd) = Zone(tab);
+        items.Add(Item(tab.IsPinned ? "Bỏ ghim tab" : "Ghim tab", () => SetPinned(tab, !tab.IsPinned), isFolder));
         items.Add(Item("Nhân bản tab", () => { SelectTab(_tabs.IndexOf(tab), focus: false); DuplicateCurrentTab(); }, isFolder));
+        items.Add(Item("Chuyển tab sang trái", () => MoveTabTo(tab, _tabs.IndexOf(tab) - 1), index > zoneStart));
+        items.Add(Item("Chuyển tab sang phải", () => MoveTabTo(tab, _tabs.IndexOf(tab) + 1), index < zoneEnd));
         var move = new MenuItem { Header = "Chuyển sang panel", IsEnabled = isFolder };
         for (int i = 0; i < 4; i++)
         {
@@ -476,9 +508,14 @@ public partial class PaneView : UserControl
         items.Add(new Separator());
         items.Add(Item("Đóng các tab khác", () =>
         {
-            foreach (var other in _tabs.Where(t => t != tab).ToList()) CloseTab(other);
+            foreach (var other in _tabs.Where(t => t != tab && !t.IsPinned).ToList()) CloseTab(other);
             SelectTab(_tabs.IndexOf(tab));
-        }, _tabs.Count > 1));
+        }, _tabs.Any(t => t != tab && !t.IsPinned)));
+        items.Add(Item("Đóng các tab bên phải", () =>
+        {
+            foreach (var other in _tabs.Skip(_tabs.IndexOf(tab) + 1).Where(t => !t.IsPinned).ToList()) CloseTab(other);
+            SelectTab(_tabs.IndexOf(tab));
+        }, _tabs.Skip(index + 1).Any(t => !t.IsPinned)));
         items.Add(Item("Đóng tab", () => CloseTab(tab)));
         return new ContextMenu { ItemsSource = items };
     }
@@ -497,18 +534,24 @@ public partial class PaneView : UserControl
             if (_dragTab != tab) return;
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { EndTabDrag(); return; }
             var point = e.GetPosition(this);
-            if (_dragging || Math.Abs(point.X - _dragStart.X) + Math.Abs(point.Y - _dragStart.Y) < 10) return;
-            _dragging = true;
-            button.Cursor = new Cursor(StandardCursorType.DragMove);
-            tab.Container.Opacity = 0.55;
+            if (!_dragging)
+            {
+                if (Math.Abs(point.X - _dragStart.X) + Math.Abs(point.Y - _dragStart.Y) < 10) return;
+                _dragging = true;
+                button.Cursor = new Cursor(StandardCursorType.DragMove);
+                tab.Container.Opacity = 0.55;
+            }
+            UpdateDropIndicator(tab, e.GetPosition(TabStrip));
         }, RoutingStrategies.Bubble, handledEventsToo: true);
         button.AddHandler(PointerReleasedEvent, (_, e) =>
         {
             if (_dragTab != tab) return;
             bool dropped = _dragging;
             var screen = this.PointToScreen(e.GetPosition(this));
+            int reorder = dropped ? DropIndex(tab, e.GetPosition(TabStrip)) : -1;
             EndTabDrag();
-            if (dropped) TabDropped?.Invoke(this, _tabs.IndexOf(tab), screen);
+            if (reorder >= 0) Dispatcher.UIThread.Post(() => MoveTabTo(tab, reorder));
+            else if (dropped) TabDropped?.Invoke(this, _tabs.IndexOf(tab), screen);
         }, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
         // Dự phòng: nếu mất capture khi chuột đang ở trên cửa sổ Explorer nhúng (Win32), lấy vị trí thả từ con trỏ
         button.AddHandler(PointerCaptureLostEvent, (_, _) =>
@@ -516,13 +559,17 @@ public partial class PaneView : UserControl
             if (_dragTab != tab) return;
             bool dropped = _dragging;
             EndTabDrag();
-            if (dropped && NativeMethods.GetCursorPos(out var cursor))
-                TabDropped?.Invoke(this, _tabs.IndexOf(tab), new PixelPoint(cursor.X, cursor.Y));
+            if (!dropped || !NativeMethods.GetCursorPos(out var cursor)) return;
+            var screen = new PixelPoint(cursor.X, cursor.Y);
+            int reorder = DropIndex(tab, TabStrip.PointToClient(screen));
+            if (reorder >= 0) Dispatcher.UIThread.Post(() => MoveTabTo(tab, reorder));
+            else TabDropped?.Invoke(this, _tabs.IndexOf(tab), screen);
         }, RoutingStrategies.Bubble, handledEventsToo: true);
     }
 
     private void EndTabDrag()
     {
+        ClearDropIndicator();
         if (_dragTab is { } tab)
         {
             tab.Container.Opacity = 1;
@@ -532,8 +579,86 @@ public partial class PaneView : UserControl
         _dragging = false;
     }
 
+    // ---- Sắp xếp và ghim tab ----
+
+    /// <summary>Khoảng chỉ số tab được phép đứng: tab ghim nằm trong nhóm ghim, tab thường sau nhóm ghim.</summary>
+    private (int Start, int End) Zone(PaneTab tab)
+    {
+        int pinnedCount = PinnedCount;
+        return tab.IsPinned ? (0, pinnedCount - 1) : (pinnedCount, _tabs.Count - 1);
+    }
+
+    /// <summary>Chuyển tab tới chỉ số mới trong cùng panel (giới hạn trong nhóm của nó).</summary>
+    private void MoveTabTo(PaneTab tab, int newIndex)
+    {
+        int index = _tabs.IndexOf(tab);
+        if (index < 0) return;
+        var (start, end) = Zone(tab);
+        newIndex = Math.Clamp(newIndex, start, end);
+        if (newIndex == index) return;
+        var selected = CurrentTab;
+        _tabs.RemoveAt(index);
+        _tabs.Insert(newIndex, tab);
+        TabStrip.Children.Remove(tab.Container);
+        TabStrip.Children.Insert(newIndex, tab.Container);
+        _selectedIndex = _tabs.IndexOf(selected);
+        Dispatcher.UIThread.Post(() => tab.Container.BringIntoView(), DispatcherPriority.Background);
+    }
+
+    private void SetPinned(PaneTab tab, bool pinned)
+    {
+        if (tab.Search is not null || tab.IsPinned == pinned || !_tabs.Contains(tab)) return;
+        // Ghim: đưa về cuối nhóm ghim; bỏ ghim: đưa về đầu nhóm tab thường.
+        int pinnedCount = PinnedCount;
+        tab.IsPinned = pinned;
+        tab.PinIcon.IsVisible = pinned;
+        tab.Container.Classes.Set("pinned", pinned);
+        MoveTabTo(tab, pinned ? pinnedCount : pinnedCount - 1);
+        UpdateCloseButtons();
+    }
+
+    /// <summary>Chỉ số đích khi thả tab tại <paramref name="point"/> (toạ độ của dải tab); -1 nếu thả ra ngoài dải tab.</summary>
+    private int DropIndex(PaneTab tab, Avalonia.Point point)
+    {
+        int index = _tabs.IndexOf(tab);
+        if (index < 0 || point.Y < -8 || point.Y > TabStrip.Bounds.Height + 8 ||
+            point.X < -8 || point.X > TabStrip.Bounds.Width + 8) return -1;
+        int before = _tabs.Count;
+        for (int i = 0; i < _tabs.Count; i++)
+        {
+            var bounds = _tabs[i].Container.Bounds;
+            if (point.X < bounds.X + bounds.Width / 2) { before = i; break; }
+        }
+        int target = before > index ? before - 1 : before;
+        var (start, end) = Zone(tab);
+        return Math.Clamp(target, start, end);
+    }
+
+    private void UpdateDropIndicator(PaneTab tab, Avalonia.Point point)
+    {
+        int target = DropIndex(tab, point);
+        int index = _tabs.IndexOf(tab);
+        if (target == _dropIndex) return;
+        ClearDropIndicator();
+        _dropIndex = target;
+        if (target < 0 || target == index) return;
+        _tabs[target].Container.Classes.Add(target < index ? "dropBefore" : "dropAfter");
+    }
+
+    private void ClearDropIndicator()
+    {
+        foreach (var t in _tabs)
+        {
+            t.Container.Classes.Remove("dropBefore");
+            t.Container.Classes.Remove("dropAfter");
+        }
+        _dropIndex = -1;
+    }
+
     public void OpenTab() => AddTab(_newTabPath, NewTabId(Index), select: true);
-    public void CloseCurrentTab() => CloseTab(CurrentTab);
+    public void CloseCurrentTab() { if (!CurrentTab.IsPinned) CloseTab(CurrentTab); }
+    public void MoveCurrentTab(int direction) => MoveTabTo(CurrentTab, _selectedIndex + direction);
+    public void TogglePinCurrentTab() => SetPinned(CurrentTab, !CurrentTab.IsPinned);
     public void SelectNextTab(int direction) => SelectTab((_selectedIndex + direction + _tabs.Count) % _tabs.Count);
 
     public bool Owns(IntPtr hwnd) => _tabs.Any(t => t.Host.Owns(hwnd));

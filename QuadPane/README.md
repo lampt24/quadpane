@@ -41,7 +41,8 @@ Commit `Assets/EverythingSdk` (cả ba DLL và `LICENSE.txt`) cùng mã nguồn 
   - **Công cụ ngoài:** ẩn/hiện nút Claude Code, Codex, VS Code (kèm trạng thái lệnh có trong PATH hay không), chọn mở bằng Windows Terminal hay PowerShell.
   - **Tìm kiếm:** trạng thái Everything và liên kết tải.
   - **Phím tắt**, **Cập nhật** (kiểm tra ngay, bật/tắt tự kiểm tra), **Giới thiệu** (mở thư mục cấu hình, nhật ký lỗi, GitHub).
-- **Tab:** nhấp phải vào tab để nhân bản, chuyển sang panel khác hoặc đóng các tab khác. Kéo tab thả vào panel khác để chuyển tab sang đó (tab mới mở lại thư mục, lịch sử lùi/tiến không đi theo). `Ctrl+Shift+T` mở lại tab vừa đóng (nhớ 25 tab trong phiên chạy).
+- **Tab:** nhấp phải vào tab để ghim, nhân bản, chuyển trái/phải, chuyển sang panel khác, đóng các tab khác hoặc các tab bên phải. Kéo tab trong dải tab để sắp xếp lại thứ tự (vạch màu chỉ chỗ thả); kéo thả vào panel khác để chuyển tab sang đó (tab mới mở lại thư mục, lịch sử lùi/tiến không đi theo).
+- **Ghim tab:** tab ghim có biểu tượng 📌, luôn nằm đầu dải tab, không có nút × và không đóng bằng chuột giữa, `Ctrl+W`, "Đóng các tab khác" hay "Đóng các tab bên phải" (vẫn đóng được bằng "Đóng tab" trong menu chuột phải). Trạng thái ghim được lưu cùng layout và workspace, và đi theo tab khi chuyển sang panel khác. (Khác với nút Pin trên thanh điều hướng, dùng để ghim thư mục home.) `Ctrl+Shift+T` mở lại tab vừa đóng (nhớ 25 tab trong phiên chạy).
 - **Yêu thích & gần đây:** nút ☆ trên thanh điều hướng (hoặc `Ctrl+B`) mở menu gồm thư mục yêu thích, 20 thư mục gần đây và các tab đã đóng. `Ctrl+Shift+B` thêm / bỏ thư mục đang xem. Sắp xếp và xoá trong Cài đặt → Yêu thích.
 - **Sao chép / di chuyển sang panel kia:** `Shift+F5` / `Shift+F6` dùng hộp thoại tiến trình của Windows (hỏi khi trùng tên, hoàn tác được bằng Ctrl+Z trong Explorer). Panel đích là panel hoạt động ngay trước đó nếu đang hiện, không thì panel cùng hàng.
 - **Lọc nhanh:** ô "Lọc..." trên thanh điều hướng (`Ctrl+E`) chỉ hiện các mục có tên chứa chuỗi đã gõ, dùng `IFolderFilterSite` của Explorer Browser. Mỗi tab giữ bộ lọc riêng; bộ lọc tự xoá khi chuyển thư mục; `Esc` để xoá.
@@ -95,6 +96,7 @@ Phím mặc định; đổi trong Cài đặt → Phím tắt.
 - `Ctrl+1..4`: chọn panel
 - `Ctrl+T` / `Ctrl+W`: mở / đóng tab · `Ctrl+Shift+T`: mở lại tab vừa đóng · `Ctrl+Shift+D`: nhân bản tab
 - `Ctrl+Tab` / `Ctrl+Shift+Tab`: chuyển tab kế tiếp / trước đó
+- `Ctrl+Shift+PageUp` / `Ctrl+Shift+PageDown`: chuyển tab sang trái / phải · Ghim / bỏ ghim tab: gán phím trong Cài đặt → Phím tắt
 - `Ctrl+L` / `Alt+D`: ô địa chỉ
 - `Ctrl+F`: tìm với Everything · `Ctrl+E`: lọc nhanh thư mục hiện tại
 - `Alt+←/→/↑`: lùi / tiến / lên thư mục cha · `F5`: làm mới

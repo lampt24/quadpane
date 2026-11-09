@@ -70,7 +70,7 @@ public partial class MainWindow : Window
             var ids = _layout.TabIds[i] is { Length: > 0 } savedIds && savedIds.Length == paths.Length
                 ? savedIds : Enumerable.Range(0, paths.Length).Select(j => j == 0 ? $"QuadPane.Pane{i}" : $"QuadPane.Pane{i}.Tab{Guid.NewGuid():N}").ToArray();
             var pane = new PaneView(i, paths, ids, _layout.ActiveTabs[i], _layout.ShowTree[i],
-                LayoutStore.DefaultPath(i), _layout.TabHomes[i], _layout.ShowPreview[i]);
+                LayoutStore.DefaultPath(i), _layout.TabHomes[i], _layout.ShowPreview[i], _layout.TabPinned[i]);
             Grid.SetRow(pane, Cells[i].Row);
             Grid.SetColumn(pane, Cells[i].Col);
             pane.Activated += SetActive;
@@ -798,6 +798,9 @@ public partial class MainWindow : Window
             case CommandId.DuplicateTab: _active.DuplicateCurrentTab(); break;
             case CommandId.NextTab: _active.SelectNextTab(1); break;
             case CommandId.PreviousTab: _active.SelectNextTab(-1); break;
+            case CommandId.MoveTabLeft: _active.MoveCurrentTab(-1); break;
+            case CommandId.MoveTabRight: _active.MoveCurrentTab(1); break;
+            case CommandId.PinTab: _active.TogglePinCurrentTab(); break;
             case CommandId.Favorites: _active.ShowFavorites(); break;
             case CommandId.AddFavorite: ToggleFavorite(_active.CurrentPath); break;
             case CommandId.CopyToOther: TransferToOtherPane(move: false); break;
@@ -858,7 +861,7 @@ public partial class MainWindow : Window
     {
         if (source == target || source.TabInfo(index) is not { } info) return;
         if (!target.IsVisible) SetMode(LayoutMode.Quad);
-        target.OpenTab(info.Path, info.Home);
+        target.OpenTab(info.Path, info.Home, pinned: info.Pinned);
         source.RemoveTab(index);
         SetActive(target);
     }
@@ -1005,6 +1008,7 @@ public partial class MainWindow : Window
         ActivePane = _active.Index,
         TabPaths = [.. _panes.Select(p => p.TabPaths)],
         TabHomes = [.. _panes.Select(p => p.TabHomes)],
+        TabPinned = [.. _panes.Select(p => p.TabPinned)],
         ActiveTabs = [.. _panes.Select(p => p.ActiveTabIndex)],
         ShowTree = [.. _panes.Select(p => p.ShowTree)],
         ShowPreview = [.. _panes.Select(p => p.ShowPreview)],
@@ -1032,7 +1036,7 @@ public partial class MainWindow : Window
         if (UsesBothSplitters(_mode)) RememberRatios();
         for (int i = 0; i < 4; i++)
             _panes[i].ReplaceTabs(workspace.TabPaths[i] ?? [], workspace.TabHomes[i], workspace.ActiveTabs[i],
-                workspace.ShowTree[i], workspace.ShowPreview[i]);
+                workspace.ShowTree[i], workspace.ShowPreview[i], workspace.TabPinned[i]);
         _mode = workspace.Mode;
         _active = _panes[Math.Clamp(workspace.ActivePane, 0, 3)];
         _previous = null;
@@ -1117,6 +1121,7 @@ public partial class MainWindow : Window
             _layout.TabPaths[i] = _panes[i].TabPaths;
             _layout.TabHomes[i] = _panes[i].TabHomes;
             _layout.TabIds[i] = _panes[i].TabIds;
+            _layout.TabPinned[i] = _panes[i].TabPinned;
             _layout.ActiveTabs[i] = _panes[i].ActiveTabIndex;
             _layout.ShowTree[i] = _panes[i].ShowTree;
             _layout.ShowPreview[i] = _panes[i].ShowPreview;

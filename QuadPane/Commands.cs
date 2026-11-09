@@ -8,7 +8,7 @@ namespace QuadPane;
 public enum CommandId
 {
     Pane1, Pane2, Pane3, Pane4,
-    NewTab, CloseTab, ReopenTab, DuplicateTab, NextTab, PreviousTab,
+    NewTab, CloseTab, ReopenTab, DuplicateTab, NextTab, PreviousTab, MoveTabLeft, MoveTabRight, PinTab,
     Address, Search, Filter, Back, Forward, Up, Refresh,
     Favorites, AddFavorite,
     CopyToOther, MoveToOther,
@@ -119,6 +119,9 @@ public static class CommandCatalog
         new(CommandId.DuplicateTab, "Tab", "Nhân bản tab", "Ctrl+Shift+D"),
         new(CommandId.NextTab, "Tab", "Tab kế tiếp", "Ctrl+Tab"),
         new(CommandId.PreviousTab, "Tab", "Tab trước đó", "Ctrl+Shift+Tab"),
+        new(CommandId.MoveTabLeft, "Tab", "Chuyển tab sang trái", "Ctrl+Shift+PageUp"),
+        new(CommandId.MoveTabRight, "Tab", "Chuyển tab sang phải", "Ctrl+Shift+PageDown"),
+        new(CommandId.PinTab, "Tab", "Ghim / bỏ ghim tab"),
         new(CommandId.Address, "Điều hướng", "Chuyển tới ô địa chỉ", "Ctrl+L", "Alt+D"),
         new(CommandId.Back, "Điều hướng", "Quay lại", "Alt+Left"),
         new(CommandId.Forward, "Điều hướng", "Tiến tới", "Alt+Right"),

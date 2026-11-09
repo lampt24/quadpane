@@ -25,6 +25,7 @@ public sealed class LayoutData
     public string?[][] TabPaths { get; set; } = new string?[4][];
     public string?[][] TabHomes { get; set; } = new string?[4][];
     public string[][] TabIds { get; set; } = new string[4][];
+    public bool[][] TabPinned { get; set; } = new bool[4][];
     public int[] ActiveTabs { get; set; } = new int[4];
     public bool[] ShowTree { get; set; } = new bool[4];
     public bool[] ShowPreview { get; set; } = new bool[4];
@@ -78,6 +79,7 @@ public sealed class Workspace
     public int ActivePane { get; set; }
     public string?[][] TabPaths { get; set; } = new string?[4][];
     public string?[][] TabHomes { get; set; } = new string?[4][];
+    public bool[][] TabPinned { get; set; } = new bool[4][];
     public int[] ActiveTabs { get; set; } = new int[4];
     public bool[] ShowTree { get; set; } = new bool[4];
     public bool[] ShowPreview { get; set; } = new bool[4];
@@ -128,6 +130,7 @@ public static class LayoutStore
         if (data.TabPaths is not { Length: 4 }) data.TabPaths = new string?[4][];
         if (data.TabHomes is not { Length: 4 }) data.TabHomes = new string?[4][];
         if (data.TabIds is not { Length: 4 }) data.TabIds = new string[4][];
+        if (data.TabPinned is not { Length: 4 }) data.TabPinned = new bool[4][];
         if (data.ActiveTabs is not { Length: 4 }) data.ActiveTabs = new int[4];
         if (data.ShowPreview is not { Length: 4 }) data.ShowPreview = new bool[4];
         data.Shortcuts ??= new();
@@ -138,6 +141,7 @@ public static class LayoutStore
         foreach (var w in data.Workspaces)
         {
             if (w.TabHomes is not { Length: 4 }) w.TabHomes = new string?[4][];
+            if (w.TabPinned is not { Length: 4 }) w.TabPinned = new bool[4][];
             if (w.ActiveTabs is not { Length: 4 }) w.ActiveTabs = new int[4];
             if (w.ShowTree is not { Length: 4 }) w.ShowTree = new bool[4];
             if (w.ShowPreview is not { Length: 4 }) w.ShowPreview = new bool[4];
@@ -151,6 +155,8 @@ public static class LayoutStore
             if (data.TabPaths[i] is not { Length: > 0 }) data.TabPaths[i] = [data.Paths[i]];
             if (data.TabHomes[i] is not { } homes || homes.Length != data.TabPaths[i].Length)
                 data.TabHomes[i] = new string?[data.TabPaths[i].Length];
+            if (data.TabPinned[i] is not { } pins || pins.Length != data.TabPaths[i].Length)
+                data.TabPinned[i] = new bool[data.TabPaths[i].Length];
             var ids = data.TabIds[i];
             if (ids is not { Length: > 0 } || ids.Length != data.TabPaths[i].Length)
                 ids = new string[data.TabPaths[i].Length];
