@@ -527,7 +527,7 @@ public partial class PaneView : UserControl
             move.Items.Add(Item($"Panel {i + 1}", () => TabMoveRequested?.Invoke(this, _tabs.IndexOf(tab), target)));
         }
         items.Add(move);
-        items.Add(Item("Phân tích dung lượng (TreeSize)...", () => TreeSizeRequested?.Invoke(tab.Path), isFolder));
+        items.Add(Item("Phân tích dung lượng (TreeSize)...", () => { if (tab.Path is { } p) TreeSizeRequested?.Invoke(p); }, isFolder && tab.Path is not null));
         items.Add(new Separator());
         items.Add(Item("Đóng các tab khác", () =>
         {

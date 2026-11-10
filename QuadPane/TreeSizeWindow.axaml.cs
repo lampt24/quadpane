@@ -269,7 +269,7 @@ public partial class TreeSizeWindow : Window
                             IsFolder = r.IsFolder,
                             Size = r.Size ?? 0,
                             ParentSize = parentSize,
-                            Modified = r.DateModified,
+                            Modified = r.Modified,
                         };
                         if (r.IsFolder)
                         {
