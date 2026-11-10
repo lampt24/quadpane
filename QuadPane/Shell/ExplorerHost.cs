@@ -38,6 +38,9 @@ public sealed class ExplorerHost : NativeControlHost
     /// <summary>Thư mục mở đầu tiên (parsing name). Đặt trước khi control được nạp.</summary>
     public string? InitialPath { get; set; }
 
+    /// <summary>Tên tệp/thư mục cần chọn và focus sau khi điều hướng xong.</summary>
+    public string? SelectItemName { get; set; }
+
     /// <summary>Tên dùng để Windows lưu riêng trạng thái view (cột, kiểu xem) cho panel này.</summary>
     public string PropertyBagName { get; set; } = "QuadPane";
 
@@ -61,13 +64,17 @@ public sealed class ExplorerHost : NativeControlHost
         try
         {
             var view = (IFolderView)Marshal.GetObjectForIUnknown(pointer);
-            try { if (view.ItemCount(2, out int count) == 0) _itemCount = count; }
+            try { if (view.ItemCount(SVGIO_ALL, out int count) == 0) _itemCount = count; }
             finally { Marshal.ReleaseComObject(view); }
         }
         catch (COMException) { }
         catch (InvalidCastException) { }
         finally { Marshal.Release(pointer); }
         ItemCountChanged?.Invoke();
+        if (!string.IsNullOrEmpty(SelectItemName))
+        {
+            TrySelectPendingItem(1);
+        }
     }
 
     public bool ShowTree
@@ -237,8 +244,9 @@ public sealed class ExplorerHost : NativeControlHost
 
     // ---- Điều hướng ----
 
-    public bool Navigate(string path)
+    public bool Navigate(string path, string? selectItem = null)
     {
+        if (!string.IsNullOrEmpty(selectItem)) SelectItemName = selectItem;
         if (_browser == null || string.IsNullOrWhiteSpace(path)) return false;
         var pidl = ParsePath(Environment.ExpandEnvironmentVariables(path.Trim()));
         if (pidl == IntPtr.Zero) return false;
@@ -327,6 +335,79 @@ public sealed class ExplorerHost : NativeControlHost
     /// <summary>Đưa focus bàn phím vào danh sách file của panel.</summary>
     public void FocusView() => WithShellView(v => v.UIActivate(SVUIA_ACTIVATE_FOCUS));
 
+    /// <summary>Lập lịch chọn và focus tới mục có tên chỉ định khi view sẵn sàng.</summary>
+    public void SelectItemOrSchedule(string itemName)
+    {
+        SelectItemName = itemName;
+        TrySelectPendingItem(1);
+    }
+
+    private void TrySelectPendingItem(int attempt)
+    {
+        if (string.IsNullOrEmpty(SelectItemName)) return;
+        if (SelectItem(SelectItemName))
+        {
+            SelectItemName = null;
+            return;
+        }
+        if (attempt < 8)
+        {
+            DispatcherTimer.RunOnce(() => TrySelectPendingItem(attempt + 1), TimeSpan.FromMilliseconds(attempt * 80), DispatcherPriority.Background);
+        }
+        else
+        {
+            SelectItemName = null;
+        }
+    }
+
+    /// <summary>Chọn và cuộn tới mục có tên chỉ định trong view hiện tại.</summary>
+    public bool SelectItem(string itemName)
+    {
+        if (_browser is null || string.IsNullOrWhiteSpace(itemName)) return false;
+        var viewId = IID_IFolderView;
+        if (_browser.GetCurrentView(ref viewId, out var pointer) != 0 || pointer == IntPtr.Zero) return false;
+        try
+        {
+            var view = (IFolderView)Marshal.GetObjectForIUnknown(pointer);
+            try
+            {
+                if (view.ItemCount(SVGIO_ALL, out int count) != 0 || count <= 0) return false;
+                string nameWithoutExt = Path.GetFileNameWithoutExtension(itemName);
+                for (int i = 0; i < count; i++)
+                {
+                    if (view.Item(i, out var childPidl) == 0 && childPidl != IntPtr.Zero)
+                    {
+                        try
+                        {
+                            var name = GetName(childPidl, SIGDN_PARENTRELATIVEPARSING)
+                                       ?? GetName(childPidl, SIGDN_NORMALDISPLAY);
+                            if (name != null && (
+                                string.Equals(name, itemName, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(name, nameWithoutExt, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                const uint flags = SVSI_SELECT | SVSI_DESELECTOTHERS | SVSI_ENSUREVISIBLE | SVSI_FOCUSED | SVSI_SELECTIONMARK;
+                                view.SelectItem(i, flags);
+                                FocusView();
+                                return true;
+                            }
+                        }
+                        finally
+                        {
+                            ILFree(childPidl);
+                        }
+                    }
+                }
+                return false;
+            }
+            finally
+            {
+                Marshal.ReleaseComObject(view);
+            }
+        }
+        catch { return false; }
+        finally { Marshal.Release(pointer); }
+    }
+
     private void WithShellView(Action<IShellView> action)
     {
         if (_browser == null) return;
@@ -385,6 +466,10 @@ public sealed class ExplorerHost : NativeControlHost
         Navigated?.Invoke(display, parsing);
         Dispatcher.UIThread.Post(UpdateItemCount, DispatcherPriority.Background);
         Dispatcher.UIThread.Post(ApplyTheme, DispatcherPriority.Background);
+        if (!string.IsNullOrEmpty(SelectItemName))
+        {
+            Dispatcher.UIThread.Post(() => TrySelectPendingItem(1), DispatcherPriority.Background);
+        }
     }
 
     private void OnNavigationFailed()

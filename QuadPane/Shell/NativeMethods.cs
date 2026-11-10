@@ -82,6 +82,14 @@ internal interface IFolderView
     [PreserveSig] int Item(int index, out IntPtr pidl);
     [PreserveSig] int ItemCount(uint flags, out int count);
     [PreserveSig] int Items(uint flags, ref Guid iid, out IntPtr result);
+    [PreserveSig] int GetSelectionMarkedItem(out int item);
+    [PreserveSig] int GetFocusedItem(out int item);
+    [PreserveSig] int GetItemPosition(IntPtr pidl, out POINT pt);
+    [PreserveSig] int GetSpacing(ref POINT pt);
+    [PreserveSig] int GetDefaultSpacing(ref POINT pt);
+    [PreserveSig] int GetAutoArrange();
+    [PreserveSig] int SelectItem(int item, uint flags);
+    [PreserveSig] int SelectAndPositionItems(uint cidl, IntPtr apidl, IntPtr apt, uint flags);
 }
 
 [ComImport, Guid("000214f2-0000-0000-c000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -231,6 +239,17 @@ internal static class NativeMethods
 
     public const uint SVUIA_ACTIVATE_FOCUS = 2;
     public const uint SVGIO_SELECTION = 1;
+    public const uint SVGIO_ALL = 2;
+
+    // Cờ chọn mục cho IFolderView.SelectItem
+    public const uint SVSI_DESELECT = 0x00000000;
+    public const uint SVSI_SELECT = 0x00000001;
+    public const uint SVSI_EDIT = 0x00000003;
+    public const uint SVSI_DESELECTOTHERS = 0x00000004;
+    public const uint SVSI_ENSUREVISIBLE = 0x00000008;
+    public const uint SVSI_FOCUSED = 0x00000010;
+    public const uint SVSI_TRANSLATEPT = 0x00000020;
+    public const uint SVSI_SELECTIONMARK = 0x00000040;
 
     // SIGDN
     public const uint SIGDN_NORMALDISPLAY = 0x00000000;

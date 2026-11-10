@@ -97,10 +97,30 @@ public partial class PaneView : UserControl
 
     public void ActivateTab(int index) => SelectTab(index);
     public void OpenTab(string path) => AddTab(path, $"QuadPane.Pane{Index}.Tab{Guid.NewGuid():N}", select: true);
+
+    /// <summary>Mở thư mục trong tab và chọn (focus) một tệp/thư mục cụ thể.</summary>
+    public void OpenLocation(string folderPath, string? selectItem = null)
+    {
+        int existing = FindTab(folderPath);
+        if (existing >= 0)
+        {
+            SelectTab(existing);
+            if (!string.IsNullOrEmpty(selectItem))
+            {
+                _tabs[existing].Host.SelectItemOrSchedule(selectItem);
+            }
+        }
+        else
+        {
+            AddTab(folderPath, NewTabId(Index), select: true, selectItem: selectItem);
+        }
+    }
+
     public SearchResultsView OpenSearchTab()
     {
         var search = new SearchResultsView();
         search.OpenFolder += path => OpenTab(path);
+        search.OpenLocation += (folder, item) => OpenLocation(folder, item);
         search.ResultsChanged += () => { if (IsCurrentSearch(search)) PathChanged?.Invoke(this); };
         AddTab(_defaultPath, $"QuadPane.Pane{Index}.Tab{Guid.NewGuid():N}", select: true, search: search, focus: false);
         return search;
@@ -167,12 +187,13 @@ public partial class PaneView : UserControl
     }
 
     private void AddTab(string? path, string id, bool select, SearchResultsView? search = null,
-        bool focus = true, string? home = null, int insertAt = -1, bool pinned = false)
+        bool focus = true, string? home = null, int insertAt = -1, bool pinned = false, string? selectItem = null)
     {
         pinned &= search is null;
         var host = new ExplorerHost
         {
             InitialPath = path,
+            SelectItemName = selectItem,
             PropertyBagName = id,
             ShowTree = _showTree,
             ShowPreview = _showPreview,

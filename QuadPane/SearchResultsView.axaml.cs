@@ -21,6 +21,7 @@ public partial class SearchResultsView : UserControl
     public int ResultCount => ResultsList.ItemCount;
     public string? SelectedPath => (ResultsList.SelectedItem as SearchResult)?.FullPath;
     public event Action<string>? OpenFolder;
+    public event Action<string, string?>? OpenLocation;
     public event Action? ResultsChanged;
 
     public SearchResultsView()
@@ -211,17 +212,21 @@ public partial class SearchResultsView : UserControl
         if (ResultsList.SelectedItem is not SearchResult result) return;
         try
         {
-            string target = !string.IsNullOrEmpty(result.Directory) ? result.Directory : result.FullPath;
-            if (Directory.Exists(target))
+            string targetFolder = !string.IsNullOrEmpty(result.Directory) ? result.Directory : result.FullPath;
+            string? itemName = !result.IsFolder ? result.Name : Path.GetFileName(result.FullPath.TrimEnd('\\', '/'));
+            if (Directory.Exists(targetFolder))
             {
-                OpenFolder?.Invoke(target);
+                if (OpenLocation is not null) OpenLocation.Invoke(targetFolder, itemName);
+                else OpenFolder?.Invoke(targetFolder);
             }
             else if (File.Exists(result.FullPath))
             {
                 var dir = Path.GetDirectoryName(result.FullPath);
+                var name = Path.GetFileName(result.FullPath);
                 if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
                 {
-                    OpenFolder?.Invoke(dir);
+                    if (OpenLocation is not null) OpenLocation.Invoke(dir, name);
+                    else OpenFolder?.Invoke(dir);
                 }
             }
         }
