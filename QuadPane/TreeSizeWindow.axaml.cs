@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using QuadPane.Shell;
@@ -45,6 +46,42 @@ public partial class TreeSizeWindow : Window
 
         CheckEverythingIndexStatus();
         PopulateDriveSelector(initialPath);
+
+        TitleBar.PointerPressed += TitleBar_PointerPressed;
+        ActualThemeVariantChanged += (_, _) => ApplyThemeToNative();
+        Dispatcher.UIThread.Post(() =>
+        {
+            ApplyThemeToNative();
+            HideDrawnTitle();
+        }, DispatcherPriority.Background);
+    }
+
+    private void ApplyThemeToNative()
+    {
+        var hwnd = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        ShellTheme.ApplyTitleBar(hwnd, ActualThemeVariant == ThemeVariant.Dark);
+    }
+
+    private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (e.ClickCount == 2)
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        else
+            BeginMoveDrag(e);
+    }
+
+    private void HideDrawnTitle()
+    {
+        if (this.GetVisualParent() is not Visual host) return;
+        foreach (var v in host.GetVisualDescendants())
+        {
+            if (v is Control { Name: "PART_TitleTextPanel" or "PART_FullScreenButton" } c)
+            {
+                c.IsVisible = false;
+                c.IsHitTestVisible = false;
+            }
+        }
     }
 
     private void CheckEverythingIndexStatus()
