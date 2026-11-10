@@ -221,7 +221,53 @@ public partial class MainWindow : Window
 
     private void UpdateStatusNow()
     {
-        if (!_installingUpdate && !_gitBusy) StatusText.Text = $"{_active.ItemCount:N0} mục";
+        if (!_installingUpdate && !_gitBusy)
+        {
+            var selected = _active.SelectedPaths();
+            if (_layout.ShowFolderSize && selected.Count == 1)
+            {
+                string item = selected[0];
+                string name = Path.GetFileName(item.TrimEnd('\\', '/'));
+                if (string.IsNullOrEmpty(name)) name = item;
+
+                if (Directory.Exists(item))
+                {
+                    long? size = EverythingSearch.GetFolderSize(item);
+                    if (size is long bytes)
+                        StatusText.Text = $"📁 {name} — {SearchResult.FormatBytes(bytes)}";
+                    else
+                        StatusText.Text = $"📁 {name}";
+                }
+                else if (File.Exists(item))
+                {
+                    try
+                    {
+                        long bytes = new FileInfo(item).Length;
+                        StatusText.Text = $"📄 {name} — {SearchResult.FormatBytes(bytes)}";
+                    }
+                    catch
+                    {
+                        StatusText.Text = $"📄 {name}";
+                    }
+                }
+                else
+                {
+                    StatusText.Text = $"{_active.ItemCount:N0} mục";
+                }
+            }
+            else if (_layout.ShowFolderSize && selected.Count > 1)
+            {
+                var (total, known) = EverythingSearch.GetTotalSize(selected);
+                if (known > 0)
+                    StatusText.Text = $"Đã chọn {selected.Count:N0} mục (Tổng: {SearchResult.FormatBytes(total)})";
+                else
+                    StatusText.Text = $"Đã chọn {selected.Count:N0} mục";
+            }
+            else
+            {
+                StatusText.Text = $"{_active.ItemCount:N0} mục";
+            }
+        }
         ToolTip.SetTip(StatusText, _active.DisplayPath);
         if (!string.Equals(_gitStatusPath, _active.CurrentPath, StringComparison.OrdinalIgnoreCase)) RefreshGit();
     }
@@ -708,7 +754,16 @@ public partial class MainWindow : Window
             var p = pane;
             Dispatcher.UIThread.Post(() => SetActive(p));
         }
-        if (isMouseDown) return false;
+        if (isMouseDown)
+        {
+            Dispatcher.UIThread.Post(UpdateStatus, DispatcherPriority.Background);
+            return false;
+        }
+
+        if (isKeyDown && (int)msg.wParam is 0x20 /* Space */ or >= 0x21 and <= 0x28 /* PageUp..Down */ or 0x41 /* A */)
+        {
+            Dispatcher.UIThread.Post(UpdateStatus, DispatcherPriority.Background);
+        }
 
         var modifiers = (IsKeyDown(VK_CONTROL) ? KeyModifiers.Control : 0) |
                         (IsKeyDown(VK_MENU) ? KeyModifiers.Alt : 0) |

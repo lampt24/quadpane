@@ -74,6 +74,7 @@ public partial class SettingsWindow : Window
         TerminalButtonSwitch.IsChecked = _settings.ShowTerminalButton;
         TerminalSwitch.IsChecked = _settings.UseWindowsTerminal;
         AutoUpdateSwitch.IsChecked = _settings.AutoCheckUpdates;
+        FolderSizeSwitch.IsChecked = _settings.ShowFolderSize;
         _loading = false;
     }
 
@@ -93,6 +94,14 @@ public partial class SettingsWindow : Window
             ? "Everything đang chạy. Ô tìm kiếm trên thanh tiêu đề đã sẵn sàng."
             : "Everything chưa chạy. Cài và mở Everything để dùng ô tìm kiếm.";
         EverythingDownload.IsVisible = !everything;
+
+        bool folderSizeIndexed = everything && EverythingSearch.IsFolderSizeIndexed();
+        FolderSizeStatus.Text = !everything
+            ? "Everything chưa chạy. Mở Everything để bật tính năng này."
+            : folderSizeIndexed
+                ? "Đã kích hoạt trong Everything: dung lượng thư mục hiển thị tức thì (0 ms)."
+                : "Chưa bật trong Everything: nhấn 'Bật trong Everything' hoặc bật 'Index folder size' trong Everything.";
+        EnableFolderSizeButton.IsVisible = everything && !folderSizeIndexed;
 
         OpenLogButton.IsEnabled = File.Exists(App.CrashLogPath);
         if (UpdateStatus.Text is null or "")
@@ -397,7 +406,21 @@ public partial class SettingsWindow : Window
         _settings.ShowTerminalButton = TerminalButtonSwitch.IsChecked == true;
         _settings.UseWindowsTerminal = TerminalSwitch.IsChecked == true;
         _settings.AutoCheckUpdates = AutoUpdateSwitch.IsChecked == true;
+        _settings.ShowFolderSize = FolderSizeSwitch.IsChecked == true;
         _main?.ApplySettings();
+    }
+
+    private void EnableFolderSize_Click(object? sender, RoutedEventArgs e)
+    {
+        if (EverythingSearch.TryEnableFolderSizeIndexing())
+        {
+            RefreshEnvironment();
+            UpdateService.ShowInfo(this, "Đã gửi cấu hình 'Index folder size' tới Everything.", "Cài đặt Everything");
+        }
+        else
+        {
+            UpdateService.ShowInfo(this, "Hãy mở Everything → Tools → Options → Indexes → Tích chọn 'Index folder size' rồi bấm OK.", "Hướng dẫn bật");
+        }
     }
 
     private void CloseActionBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)

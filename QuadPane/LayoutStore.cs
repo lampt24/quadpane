@@ -46,6 +46,7 @@ public sealed class LayoutData
     public bool ShowTerminalButton { get; set; } = true;
     public bool UseWindowsTerminal { get; set; } = true;
     public bool AutoCheckUpdates { get; set; } = true;
+    public bool ShowFolderSize { get; set; } = true;
 
     /// <summary>Phím tắt người dùng đã đổi: tên lệnh → các tổ hợp phím. Lệnh không có ở đây dùng mặc định.</summary>
     public Dictionary<string, string[]> Shortcuts { get; set; } = new();

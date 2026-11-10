@@ -352,10 +352,25 @@
                     </Border>
                     <Border Classes="card">
                         <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Classes="cardIcon" Text="&#xE8B7;"/>
+                            <StackPanel>
+                                <TextBlock Classes="cardTitle" Text="Hiển thị dung lượng thư mục"/>
+                                <TextBlock x:Name="FolderSizeStatus" Classes="cardDescription"
+                                           Text="Lấy dung lượng thư mục siêu tốc từ Everything SDK."/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="EnableFolderSizeButton" Content="Bật trong Everything"
+                                        IsVisible="False" Click="EnableFolderSize_Click"/>
+                                <ToggleSwitch x:Name="FolderSizeSwitch" IsCheckedChanged="Setting_Changed"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <Border Classes="card">
+                        <Grid Classes="cardRow" ColumnDefinitions="Auto,*,Auto">
                             <TextBlock Classes="cardIcon" Text="&#xE946;"/>
                             <StackPanel>
                                 <TextBlock Classes="cardTitle" Text="Cách dùng"/>
-                                <TextBlock Classes="cardDescription" Text="Nhấn Ctrl+F rồi gõ từ khoá. Kết quả mở trong tab mới ở panel đang chọn, tối đa 200 mục. Enter hoặc ↓ để chuyển vào danh sách, nhấp phải để mở menu Windows."/>
+                                <TextBlock Classes="cardDescription" Text="Nhấn Ctrl+F rồi gõ từ khoá. Kết quả mở trong tab mới ở panel đang chọn, tối đa 200 mục. Enter để mở tệp, Ctrl+Enter để mở vị trí tệp trong folder, nhấp phải để mở menu tuỳ chọn."/>
                             </StackPanel>
                         </Grid>
                     </Border>

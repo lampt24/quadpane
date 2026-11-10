@@ -54,6 +54,9 @@ internal static class UpdateService
     internal static void ShowError(Window owner, string message, string title = "Cập nhật QuadPane") =>
         MessageBoxW(owner.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero, message, title, 0x10);
 
+    internal static void ShowInfo(Window owner, string message, string title = "QuadPane") =>
+        MessageBoxW(owner.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero, message, title, 0x40);
+
     internal static async Task InstallAsync(Release release)
     {
         var executable = Environment.ProcessPath;
