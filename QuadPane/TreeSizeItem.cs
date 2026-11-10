@@ -116,8 +116,8 @@ public sealed class TreeSizeItem : INotifyPropertyChanged
             Size = 1024 * 1024,
             ParentSize = 10 * 1024 * 1024,
         };
-        if (item.SizeText != "1 MB" || item.PercentText != "10.0%")
-            throw new InvalidOperationException("TreeSizeItem calculations failed.");
+        if (item.SizeText != "1.0 MB" || item.PercentText != "10.0%")
+            throw new InvalidOperationException($"TreeSizeItem calculations failed: SizeText={item.SizeText}, PercentText={item.PercentText}");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
