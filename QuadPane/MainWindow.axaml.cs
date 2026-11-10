@@ -171,7 +171,13 @@ public partial class MainWindow : Window
             StatusText.Text = $"Đang tải QuadPane {release.Tag}...";
             await UpdateService.InstallAsync(release);
             App.RequestExit();
+            _settingsWindow?.Close();
+            _treeSizeWindow?.Close();
             Close();
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                desktop.Shutdown();
+            }
         }
         catch (Exception ex)
         {
@@ -1178,12 +1184,14 @@ public partial class MainWindow : Window
             {
                 e.Cancel = true;
                 _settingsWindow?.Close();
+                _treeSizeWindow?.Close();
                 Hide();
                 return;
             }
             App.RequestExit();
         }
         _settingsWindow?.Close();
+        _treeSizeWindow?.Close();
         _updateTimer.Stop();
         _gitTimer.Stop();
         _statusTimer.Stop();

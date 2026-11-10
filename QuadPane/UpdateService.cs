@@ -111,7 +111,10 @@ internal static class UpdateService
             foreach (var file in Directory.EnumerateFiles(install, "unins*.*"))
                 File.Copy(file, Path.Combine(stage, Path.GetFileName(file)));
 
-            File.Copy(Path.Combine(install, "Updater.ps1"), script);
+            var updaterSource = File.Exists(Path.Combine(stage, "Updater.ps1"))
+                ? Path.Combine(stage, "Updater.ps1")
+                : Path.Combine(install, "Updater.ps1");
+            File.Copy(updaterSource, script, overwrite: true);
             var start = new ProcessStartInfo("powershell.exe")
             {
                 UseShellExecute = false,
