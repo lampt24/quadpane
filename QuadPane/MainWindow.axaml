@@ -59,6 +59,9 @@
                 <Button x:Name="WorkspaceButton" Classes="icon titleIcon" Content="&#xE7C4;"
                         ToolTip.Tip="Workspace: lưu và chuyển nhanh bộ tab + bố cục"
                         AutomationProperties.Name="Workspace" Click="Workspace_Click"/>
+                <Button Classes="icon titleIcon" Content="&#xE9D9;"
+                        ToolTip.Tip="Phân tích dung lượng TreeSize (Ctrl+Shift+U)"
+                        AutomationProperties.Name="TreeSize" Click="DiskUsage_Click"/>
                 <Button Classes="icon titleIcon" Content="&#xE8FD;"
                         ToolTip.Tip="Bảng lệnh (Ctrl+Shift+P)" AutomationProperties.Name="Bảng lệnh"
                         Click="CommandPalette_Click"/>

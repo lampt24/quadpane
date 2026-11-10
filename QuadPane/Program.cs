@@ -24,6 +24,7 @@ internal static class Program
         if (args is ["--check-tab-homes"]) { LayoutStore.SelfCheckTabHomes(); return; }
         if (args is ["--check-shell-interop"]) { ShellContextMenu.SelfCheck(); return; }
         if (args is ["--check-mouse-navigation"]) { MainWindow.SelfCheckMouseNavigation(); return; }
+        if (args is ["--check-treesize"]) { TreeSizeItem.SelfCheck(); return; }
         AppDomain.CurrentDomain.UnhandledException += (_, e) => App.LogCrash(e.ExceptionObject as Exception);
         if (!OperatingSystem.IsWindows())
         {

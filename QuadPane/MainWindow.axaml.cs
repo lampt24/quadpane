@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private bool _checkingUpdate;
     private bool _installingUpdate;
     private SettingsWindow? _settingsWindow;
+    private TreeSizeWindow? _treeSizeWindow;
 
     // Hook message của thread UI: phím/chuột trong cửa sổ Win32 của Explorer
     // không đi qua hệ thống input của Avalonia, nên phải bắt ở mức Win32.
@@ -79,6 +80,7 @@ public partial class MainWindow : Window
             pane.TabClosed += OnTabClosed;
             pane.FolderVisited += (_, path) => _layout.AddRecent(path);
             pane.FavoritesRequested += ShowFavoritesMenu;
+            pane.TreeSizeRequested += path => OpenTreeSize(path);
             pane.TabDropped += OnTabDropped;
             pane.TabMoveRequested += (source, index, target) => MoveTab(source, index, _panes[target]);
             PaneGrid.Children.Insert(0, pane); // splitter nằm trên cùng
@@ -372,6 +374,27 @@ public partial class MainWindow : Window
     internal string? AvailableUpdateTag => _availableRelease?.Tag;
 
     private void Settings_Click(object? sender, RoutedEventArgs e) => OpenSettings();
+    private void DiskUsage_Click(object? sender, RoutedEventArgs e) => OpenTreeSize();
+
+    internal void OpenTreeSize(string? initialPath = null)
+    {
+        if (_treeSizeWindow is null)
+        {
+            _treeSizeWindow = new TreeSizeWindow(this, initialPath ?? _active.CurrentPath);
+            _treeSizeWindow.Closed += (_, _) => _treeSizeWindow = null;
+            _treeSizeWindow.Show(this);
+        }
+        else
+        {
+            _treeSizeWindow.Activate();
+        }
+    }
+
+    public void OpenLocation(string folderPath, string? selectItem = null)
+    {
+        _active.OpenLocation(folderPath, selectItem);
+        SetActive(_active);
+    }
 
     internal void OpenSettings(string? page = null)
     {
@@ -872,6 +895,7 @@ public partial class MainWindow : Window
             case CommandId.ToggleTheme: Theme_Click(null, new RoutedEventArgs()); break;
             case CommandId.CommandPalette: OpenCommandPalette(); break;
             case CommandId.Settings: OpenSettings(); break;
+            case CommandId.DiskUsage: OpenTreeSize(); break;
         }
     }
 

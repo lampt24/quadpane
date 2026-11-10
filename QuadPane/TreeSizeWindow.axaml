@@ -1,0 +1,174 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:QuadPane"
+        x:Class="QuadPane.TreeSizeWindow"
+        Title="Phân tích dung lượng (TreeSize) - QuadPane"
+        FontFamily="Segoe UI Variable, Segoe UI"
+        Icon="/Assets/QuadPane.ico"
+        Width="1080" Height="700" MinWidth="820" MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowFallbackBrush}">
+
+    <Window.Styles>
+        <Style Selector="TreeViewItem">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="2,1"/>
+        </Style>
+        <Style Selector="TreeViewItem /template/ ContentPresenter#PART_HeaderPresenter">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="TreeViewItem /template/ ContentPresenter">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="TreeViewItem" x:DataType="local:TreeSizeItem">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+        </Style>
+        <Style Selector="Button.toolbarBtn">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="Button.headerSort">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource StatusMutedTextBrush}"/>
+        </Style>
+        <Style Selector="Button.headerSort:pointerover">
+            <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,30,*,30">
+
+        <!-- ===== Toolbar ===== -->
+        <Border Grid.Row="0" Background="{DynamicResource PaneHeaderBrush}"
+                BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,0,0,1" Padding="10,8">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE9D9;" FontFamily="{StaticResource IconFont}" FontSize="18"
+                               Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <ComboBox x:Name="DriveSelector" Width="260" Height="30" VerticalAlignment="Center"
+                              SelectionChanged="DriveSelector_SelectionChanged"/>
+                    <Button x:Name="BrowseButton" Classes="toolbarBtn" Content="Chọn thư mục..."
+                            ToolTip.Tip="Phân tích thư mục bất kỳ" Click="BrowseButton_Click"/>
+                    <Button x:Name="RefreshButton" Classes="toolbarBtn" Content="Làm mới (F5)"
+                            ToolTip.Tip="Quét lại dung lượng" Click="RefreshButton_Click"/>
+                    <Button x:Name="ExpandOneLevelButton" Classes="toolbarBtn" Content="Mở 1 cấp"
+                            ToolTip.Tip="Mở rộng cấp tiếp theo" Click="ExpandOneLevelButton_Click"/>
+                    <Button x:Name="CollapseAllButton" Classes="toolbarBtn" Content="Thu gọn"
+                            ToolTip.Tip="Thu gọn toàn bộ cây" Click="CollapseAllButton_Click"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBox x:Name="FilterBox" Width="180" Height="30" PlaceholderText="Lọc tên..."
+                             VerticalAlignment="Center" TextChanged="FilterBox_TextChanged"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===== Banner Everything index notice (khi chưa bật folder size indexing) ===== -->
+        <Border x:Name="EverythingBanner" Grid.Row="1" IsVisible="False"
+                Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="0,0,0,1" Padding="12,6">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE946;" FontFamily="{StaticResource IconFont}" FontSize="14"
+                               Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="Bật tính năng đọc dung lượng thư mục trong Everything để quét tức thì (&lt;1s) thay vì duyệt tệp."
+                               FontSize="12" Foreground="{DynamicResource TitleTextBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Button Grid.Column="1" Classes="toolbarBtn" Content="Bật ngay trong Everything"
+                        Height="26" Padding="8,2" FontSize="11" Click="EnableEverythingFolderSize_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- ===== Tiêu đề các cột (Header) ===== -->
+        <Border Grid.Row="2" Background="{DynamicResource PaneHeaderBrush}"
+                BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,110,140,85,95,130" Margin="28,0,20,0">
+                <Button Grid.Column="0" Classes="headerSort" Content="Tên thư mục / Tệp"
+                        HorizontalAlignment="Left" Click="SortByName_Click"/>
+                <Button Grid.Column="1" Classes="headerSort" Content="Dung lượng"
+                        HorizontalAlignment="Right" Click="SortBySize_Click"/>
+                <TextBlock Grid.Column="2" Text="Tỉ lệ %" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource StatusMutedTextBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="3" Text="Số tệp" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource StatusMutedTextBrush}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Grid.Column="4" Text="Thư mục" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource StatusMutedTextBrush}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Button Grid.Column="5" Classes="headerSort" Content="Ngày sửa đổi"
+                        HorizontalAlignment="Right" Margin="0,0,8,0" Click="SortByModified_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- ===== Danh sách TreeView ===== -->
+        <TreeView x:Name="TreeList" Grid.Row="3" Background="Transparent" BorderThickness="0"
+                  DoubleTapped="TreeList_DoubleTapped" KeyDown="TreeList_KeyDown">
+            <TreeView.ItemTemplate>
+                <TreeDataTemplate x:DataType="local:TreeSizeItem" ItemsSource="{Binding Children}">
+                    <Grid ColumnDefinitions="*,110,140,85,95,130" Margin="0,2,0,2" HorizontalAlignment="Stretch">
+                        <!-- Cột 0: Icon + Tên + Loading -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Image Source="{Binding IconSource}" Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TitleTextBrush}"/>
+                            <ProgressBar IsIndeterminate="True" Width="36" Height="3" Margin="6,0,0,0"
+                                         VerticalAlignment="Center" IsVisible="{Binding IsLoading}"/>
+                        </StackPanel>
+
+                        <!-- Cột 1: Dung lượng -->
+                        <TextBlock Grid.Column="1" Text="{Binding SizeText}" TextAlignment="Right" VerticalAlignment="Center"
+                                   Margin="0,0,10,0" FontFamily="Consolas, Segoe UI Variable, Segoe UI"
+                                   Foreground="{DynamicResource TitleTextBrush}"/>
+
+                        <!-- Cột 2: Tỉ lệ % trực quan -->
+                        <Grid Grid.Column="2" Margin="4,0,10,0" VerticalAlignment="Center">
+                            <ProgressBar Minimum="0" Maximum="100" Value="{Binding Percent}" Height="14" CornerRadius="3"
+                                         Background="{DynamicResource SegmentBackgroundBrush}"
+                                         Foreground="{DynamicResource AccentBrush}"/>
+                            <TextBlock Text="{Binding PercentText}" FontSize="10" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TitleTextBrush}"/>
+                        </Grid>
+
+                        <!-- Cột 3: Số tệp -->
+                        <TextBlock Grid.Column="3" Text="{Binding FileCountText}" TextAlignment="Right" VerticalAlignment="Center"
+                                   Margin="0,0,10,0" Foreground="{DynamicResource StatusMutedTextBrush}" FontSize="11"/>
+
+                        <!-- Cột 4: Thư mục con -->
+                        <TextBlock Grid.Column="4" Text="{Binding FolderCountText}" TextAlignment="Right" VerticalAlignment="Center"
+                                   Margin="0,0,10,0" Foreground="{DynamicResource StatusMutedTextBrush}" FontSize="11"/>
+
+                        <!-- Cột 5: Ngày sửa đổi -->
+                        <TextBlock Grid.Column="5" Text="{Binding ModifiedText}" TextAlignment="Right" VerticalAlignment="Center"
+                                   Margin="0,0,8,0" Foreground="{DynamicResource StatusMutedTextBrush}" FontSize="11"/>
+                    </Grid>
+                </TreeDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+
+        <!-- ===== Thanh trạng thái đáy ===== -->
+        <Border Grid.Row="4" Background="{DynamicResource StatusSurfaceBrush}"
+                BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto" Margin="12,0,12,0">
+                <TextBlock x:Name="StatusLabel" Grid.Column="0" FontSize="11.5" FontWeight="Medium"
+                           Foreground="{DynamicResource StatusTextBrush}" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button x:Name="OpenInQuadPaneButton" Content="Mở trong QuadPane" Height="24"
+                            Padding="8,2" FontSize="11" IsEnabled="False" Click="OpenInQuadPane_Click"/>
+                    <Button x:Name="OpenInExplorerButton" Content="Mở trong Explorer" Height="24"
+                            Padding="8,2" FontSize="11" IsEnabled="False" Click="OpenInExplorer_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>

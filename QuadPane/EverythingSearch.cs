@@ -102,6 +102,56 @@ public static class EverythingSearch
     }
 
     /// <summary>
+    /// Lấy danh sách các tệp và thư mục con trực tiếp của một thư mục thông qua Everything SDK.
+    /// Trả về rỗng nếu Everything chưa chạy hoặc không tìm thấy kết quả.
+    /// </summary>
+    public static List<SearchResult> GetDirectChildren(string folderPath, uint maxResults = 10000)
+    {
+        if (string.IsNullOrWhiteSpace(folderPath)) return [];
+        folderPath = folderPath.Trim();
+        if (folderPath.Length > 3 && folderPath.EndsWith(Path.DirectorySeparatorChar))
+            folderPath = folderPath.TrimEnd(Path.DirectorySeparatorChar);
+
+        lock (Gate)
+        {
+            try
+            {
+                Native.Reset();
+                Native.SetSearch($"parent:\"{folderPath}\"");
+                Native.SetRequestFlags(RequestFullPath | RequestSize | RequestDateModified);
+                Native.SetMax(maxResults);
+                if (!Native.Query(true)) return [];
+
+                uint count = Native.GetNumResults();
+                var results = new List<SearchResult>((int)count);
+                for (uint i = 0; i < count; i++)
+                {
+                    var buffer = new StringBuilder(32768);
+                    Native.GetResultFullPathName(i, buffer, (uint)buffer.Capacity);
+                    string fullPath = buffer.ToString();
+                    string name = Path.GetFileName(fullPath.TrimEnd(Path.DirectorySeparatorChar));
+                    if (string.IsNullOrEmpty(name)) name = fullPath;
+                    string directory = Path.GetDirectoryName(fullPath.TrimEnd(Path.DirectorySeparatorChar)) ?? "";
+                    bool isFolder = Native.IsFolderResult(i);
+                    DateTime? modified = null;
+                    if (Native.GetResultDateModified(i, out long filetime))
+                    {
+                        try { modified = DateTime.FromFileTimeUtc(filetime).ToLocalTime(); }
+                        catch (ArgumentOutOfRangeException) { }
+                    }
+                    long? size = Native.GetResultSize(i, out long bytes) ? bytes : null;
+                    results.Add(new SearchResult(name, directory, fullPath, isFolder, modified, size));
+                }
+                return results;
+            }
+            catch
+            {
+                return [];
+            }
+        }
+    }
+
+    /// <summary>
     /// Lấy dung lượng của một thư mục thông qua Everything SDK (đọc từ RAM index của Everything, 0 ms I/O).
     /// Trả về null nếu Everything chưa chạy, chưa index folder size hoặc không tìm thấy.
     /// </summary>

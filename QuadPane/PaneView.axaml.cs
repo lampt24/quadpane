@@ -58,6 +58,7 @@ public partial class PaneView : UserControl
     public event Action<PaneView, int, Avalonia.PixelPoint>? TabDropped;
     /// <summary>Chọn "Chuyển sang panel" trong menu tab: (panel nguồn, chỉ số tab, panel đích).</summary>
     public event Action<PaneView, int, int>? TabMoveRequested;
+    public event Action<string>? TreeSizeRequested;
 
     private PaneTab CurrentTab => _tabs[_selectedIndex];
     private ExplorerHost Host => CurrentTab.Host;
@@ -526,6 +527,7 @@ public partial class PaneView : UserControl
             move.Items.Add(Item($"Panel {i + 1}", () => TabMoveRequested?.Invoke(this, _tabs.IndexOf(tab), target)));
         }
         items.Add(move);
+        items.Add(Item("Phân tích dung lượng (TreeSize)...", () => TreeSizeRequested?.Invoke(tab.Path), isFolder));
         items.Add(new Separator());
         items.Add(Item("Đóng các tab khác", () =>
         {
