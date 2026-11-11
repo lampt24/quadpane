@@ -119,6 +119,7 @@ internal static class UpdateService
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
+                RedirectStandardError = true,
                 WorkingDirectory = Path.GetTempPath(),
             };
             foreach (var arg in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script,
@@ -126,6 +127,29 @@ internal static class UpdateService
                          "-StagePath", stage, "-BackupPath", backup, "-ScriptPath", script })
                 start.ArgumentList.Add(arg);
             using var process = Process.Start(start) ?? throw new InvalidOperationException("Không chạy được trình cập nhật.");
+            var errors = process.StandardError.ReadToEndAsync();
+            try
+            {
+                // Chỉ đóng ứng dụng sau khi PowerShell báo script đã sẵn sàng.
+                var timeout = Stopwatch.StartNew();
+                while (!File.Exists(script + ".ready"))
+                {
+                    if (process.HasExited)
+                        throw new InvalidOperationException($"Trình cập nhật đã thoát trước khi sẵn sàng: {await errors}");
+                    if (timeout.Elapsed > TimeSpan.FromSeconds(15))
+                        throw new TimeoutException("Trình cập nhật không phản hồi. Ứng dụng vẫn được giữ mở.");
+                    await Task.Delay(100);
+                }
+            }
+            catch
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                    await process.WaitForExitAsync();
+                }
+                throw;
+            }
         }
         catch
         {
@@ -135,7 +159,11 @@ internal static class UpdateService
         }
         finally
         {
-            try { if (File.Exists(download)) File.Delete(download); }
+            try
+            {
+                File.Delete(script + ".ready");
+                if (File.Exists(download)) File.Delete(download);
+            }
             catch (IOException) { /* File tạm không được cản bước khởi động bản mới. */ }
         }
     }

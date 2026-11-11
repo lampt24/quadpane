@@ -18,6 +18,12 @@ function Write-Log([string]$msg) {
 Write-Log "Bắt đầu cập nhật QuadPane. ProcessId: $AppProcessId, Install: $InstallPath, Stage: $StagePath"
 
 try {
+    if (-not (Test-Path -LiteralPath (Join-Path $StagePath 'QuadPane.exe'))) {
+        throw 'Gói cập nhật thiếu QuadPane.exe.'
+    }
+    # Báo cho ứng dụng biết script đã khởi động và đọc được gói cập nhật.
+    [IO.File]::WriteAllText("$ScriptPath.ready", '')
+
     # 1. Chờ tiến trình chính của QuadPane thoát (tối đa 10 giây)
     $app = Get-Process -Id $AppProcessId -ErrorAction SilentlyContinue
     if ($app) {
@@ -52,7 +58,7 @@ try {
             Write-Log "Đã di chuyển thư mục InstallPath -> BackupPath ở lần thử $attempt"
             break
         } catch {
-            Write-Log "Lần thử $attempt: Move-Item InstallPath thất bại: $_"
+            Write-Log "Lần thử ${attempt}: Move-Item InstallPath thất bại: $_"
             Start-Sleep -Milliseconds 500
         }
     }
@@ -67,7 +73,7 @@ try {
                 Write-Log "Đã di chuyển StagePath -> InstallPath ở lần thử $attempt"
                 break
             } catch {
-                Write-Log "Lần thử $attempt: Move-Item StagePath thất bại: $_"
+                Write-Log "Lần thử ${attempt}: Move-Item StagePath thất bại: $_"
                 Start-Sleep -Milliseconds 500
             }
         }
@@ -87,29 +93,32 @@ try {
         Write-Log "Không thể di chuyển cả thư mục, chuyển sang chế độ cập nhật từng tệp in-place..."
 
         if (-not (Test-Path -LiteralPath $BackupPath)) {
-            New-Item -ItemType Directory -LiteralPath $BackupPath -Force | Out-Null
+            New-Item -ItemType Directory -Path $BackupPath -Force | Out-Null
         }
 
         # Backup các tệp hiện tại
-        try {
-            Copy-Item -Path "$InstallPath\*" -Destination $BackupPath -Recurse -Force -ErrorAction SilentlyContinue
-        } catch { }
+        Get-ChildItem -LiteralPath $InstallPath -Force |
+            Copy-Item -Destination $BackupPath -Recurse -Force -ErrorAction Stop
 
         # Copy đè các tệp mới từ StagePath vào InstallPath với retry loop
         $filesCopied = $false
         for ($attempt = 1; $attempt -le 20; $attempt++) {
             try {
-                Copy-Item -Path "$StagePath\*" -Destination $InstallPath -Recurse -Force -ErrorAction Stop
+                Get-ChildItem -LiteralPath $StagePath -Force |
+                    Copy-Item -Destination $InstallPath -Recurse -Force -ErrorAction Stop
                 $filesCopied = $true
                 Write-Log "Đã copy đè tệp mới từ StagePath -> InstallPath ở lần thử $attempt"
                 break
             } catch {
-                Write-Log "Lần thử $attempt: Copy-Item tệp mới thất bại: $_"
+                Write-Log "Lần thử ${attempt}: Copy-Item tệp mới thất bại: $_"
                 Start-Sleep -Milliseconds 600
             }
         }
 
         if (-not $filesCopied) {
+            Write-Log 'Sao chép thất bại, đang khôi phục tệp từ bản sao lưu...'
+            Get-ChildItem -LiteralPath $BackupPath -Force |
+                Copy-Item -Destination $InstallPath -Recurse -Force -ErrorAction Stop
             throw "Không thể ghi đè các tệp trong thư mục $InstallPath. Vui lòng đóng tất cả cửa sổ Explorer hoặc Terminal đang mở tại thư mục này rồi thử lại."
         }
     }
@@ -131,6 +140,8 @@ try {
         Add-Type -AssemblyName System.Windows.Forms
         [System.Windows.Forms.MessageBox]::Show("Không thể cài bản cập nhật:`n$err", 'QuadPane', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
     } catch { }
+    throw
 } finally {
+    Remove-Item -LiteralPath "$ScriptPath.ready" -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $ScriptPath -Force -ErrorAction SilentlyContinue
 }

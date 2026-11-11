@@ -34,6 +34,10 @@ jobs:
               throw "Missing Assets/EverythingSdk/$name in the pushed commit."
             }
           }
+      - name: Check updater with Windows PowerShell 5.1
+        if: matrix.rid == 'win-x64'
+        shell: powershell
+        run: ./tools/check-updater.ps1
       - name: Publish
         shell: pwsh
         run: |
