@@ -28,15 +28,28 @@
                         <Button Classes="tabAction glyph" Content="&#xE8C8;" AutomationProperties.Name="Sao chép đường dẫn mục được chọn"
                                 ToolTip.Tip="Sao chép đường dẫn mục chọn; nếu không chọn, sao chép thư mục đang mở" Click="CopyPath_Click"/>
                     </StackPanel>
-                    <ScrollViewer Margin="6,2,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                        <StackPanel x:Name="TabStrip" Orientation="Horizontal" Spacing="3">
-                            <Button x:Name="TabAdd" Classes="tabAdd" Margin="2,0,0,0"
-                                    AutomationProperties.Name="Thêm tab"
-                                    ToolTip.Tip="Tab mới (Ctrl+T)" Click="AddTab_Click">
-                                <Path Data="M6 1L6 11 M1 6L11 6"/>
-                            </Button>
-                        </StackPanel>
-                    </ScrollViewer>
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="6,2,0,0">
+                        <Button x:Name="TabScrollLeft" Grid.Column="0" Classes="tabAdd" IsVisible="False"
+                                AutomationProperties.Name="Cuộn tab sang trái" ToolTip.Tip="Cuộn tab sang trái"
+                                Click="TabScrollLeft_Click">
+                            <Path Data="M8 1L3 6L8 11"/>
+                        </Button>
+                        <ScrollViewer x:Name="TabScroller" Grid.Column="1"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                      ScrollChanged="TabScroller_ScrollChanged">
+                            <StackPanel x:Name="TabStrip" Orientation="Horizontal" Spacing="3"/>
+                        </ScrollViewer>
+                        <Button x:Name="TabScrollRight" Grid.Column="2" Classes="tabAdd" IsVisible="False"
+                                AutomationProperties.Name="Cuộn tab sang phải" ToolTip.Tip="Cuộn tab sang phải"
+                                Click="TabScrollRight_Click">
+                            <Path Data="M3 1L8 6L3 11"/>
+                        </Button>
+                        <Button x:Name="TabAdd" Grid.Column="3" Classes="tabAdd" Margin="2,0,0,0"
+                                AutomationProperties.Name="Thêm tab"
+                                ToolTip.Tip="Tab mới (Ctrl+T)" Click="AddTab_Click">
+                            <Path Data="M6 1L6 11 M1 6L11 6"/>
+                        </Button>
+                    </Grid>
                 </DockPanel>
             </Border>
             <!-- Thanh điều hướng của panel -->

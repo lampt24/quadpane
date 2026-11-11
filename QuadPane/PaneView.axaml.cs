@@ -302,6 +302,29 @@ public partial class PaneView : UserControl
         return string.IsNullOrEmpty(name) ? path : name;
     }
 
+    private void TabScroller_ScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        // Count the arrow space too, so showing them cannot keep overflow latched on.
+        double available = TabScroller.Viewport.Width
+            + (TabScrollLeft.IsVisible ? TabScrollLeft.Bounds.Width : 0)
+            + (TabScrollRight.IsVisible ? TabScrollRight.Bounds.Width : 0);
+        bool overflow = TabScroller.Extent.Width > available + 0.5;
+        TabScrollLeft.IsVisible = TabScrollRight.IsVisible = overflow;
+        TabScrollLeft.IsEnabled = TabScroller.Offset.X > 0.5;
+        TabScrollRight.IsEnabled = TabScroller.Offset.X + TabScroller.Viewport.Width
+            < TabScroller.Extent.Width - 0.5;
+    }
+
+    private void TabScrollLeft_Click(object? sender, RoutedEventArgs e) => ScrollTabs(-1);
+    private void TabScrollRight_Click(object? sender, RoutedEventArgs e) => ScrollTabs(1);
+
+    private void ScrollTabs(int direction)
+    {
+        double offset = TabScroller.Offset.X + direction * Math.Max(1, TabScroller.Viewport.Width * 0.75);
+        TabScroller.Offset = new Vector(Math.Clamp(offset, 0,
+            Math.Max(0, TabScroller.Extent.Width - TabScroller.Viewport.Width)), 0);
+    }
+
     private void SelectTab(int index, bool focus = true)
     {
         if (index < 0 || index >= _tabs.Count) return;
