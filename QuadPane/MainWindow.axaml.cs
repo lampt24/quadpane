@@ -389,7 +389,7 @@ public partial class MainWindow : Window
         {
             _treeSizeWindow = new TreeSizeWindow(this, initialPath ?? _active.CurrentPath);
             _treeSizeWindow.Closed += (_, _) => _treeSizeWindow = null;
-            _treeSizeWindow.Show(this);
+            _treeSizeWindow.Show();
         }
         else
         {
