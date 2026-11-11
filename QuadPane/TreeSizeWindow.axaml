@@ -124,7 +124,7 @@
         <!-- ===== Row 3: Tiêu đề các cột (Header) ===== -->
         <Border Grid.Row="3" Background="{DynamicResource PaneHeaderBrush}"
                 BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,0,0,1" Height="28">
-            <Grid ColumnDefinitions="*,125,135,80,90,130" Margin="28,0,18,0">
+            <Grid ColumnDefinitions="*,125,135,130" Margin="28,0,18,0">
                 <Button Grid.Column="0" Classes="headerSort" Content="Tên thư mục / Tệp"
                         HorizontalAlignment="Left" Click="SortByName_Click"/>
                 <Button Grid.Column="1" Classes="headerSort" Content="Dung lượng"
@@ -132,13 +132,7 @@
                 <TextBlock Grid.Column="2" Text="Tỉ lệ %" FontSize="11.5" FontWeight="SemiBold"
                            Foreground="{DynamicResource StatusMutedTextBrush}"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="3" Text="Số tệp" FontSize="11.5" FontWeight="SemiBold"
-                           Foreground="{DynamicResource StatusMutedTextBrush}"
-                           HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBlock Grid.Column="4" Text="Thư mục" FontSize="11.5" FontWeight="SemiBold"
-                           Foreground="{DynamicResource StatusMutedTextBrush}"
-                           HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <Button Grid.Column="5" Classes="headerSort" Content="Ngày sửa đổi"
+                <Button Grid.Column="3" Classes="headerSort" Content="Ngày sửa đổi"
                         HorizontalAlignment="Right" Margin="0,0,8,0" Click="SortByModified_Click"/>
             </Grid>
         </Border>
@@ -149,24 +143,24 @@
                   DoubleTapped="TreeList_DoubleTapped" KeyDown="TreeList_KeyDown">
             <TreeView.ItemTemplate>
                 <TreeDataTemplate x:DataType="local:TreeSizeItem" ItemsSource="{Binding Children}">
-                    <Grid ColumnDefinitions="*,125,135,80,90,130" Margin="0,2,18,2" HorizontalAlignment="Stretch">
+                    <Grid ColumnDefinitions="*,125,135,130" Margin="0,2,18,2" HorizontalAlignment="Stretch" ClipToBounds="True">
                         <!-- Cột 0: Icon + Tên + Loading -->
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Grid Grid.Column="0" ColumnDefinitions="16,*,Auto" ColumnSpacing="6" VerticalAlignment="Center" ClipToBounds="True">
                             <Image Source="{Binding IconSource}" Width="16" Height="16" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TitleTextBrush}"/>
-                            <ProgressBar IsIndeterminate="True" Width="36" Height="3" Margin="6,0,0,0"
+                            <ProgressBar Grid.Column="2" IsIndeterminate="True" Width="36" Height="3" Margin="6,0,0,0"
                                          VerticalAlignment="Center" IsVisible="{Binding IsLoading}"/>
-                        </StackPanel>
+                        </Grid>
 
                         <!-- Cột 1: Dung lượng (rộng 125px, không bị lấp số hay đơn vị GB/MB) -->
-                        <TextBlock Grid.Column="1" Text="{Binding SizeText}" TextAlignment="Right" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="1" Text="{Binding SizeText}" HorizontalAlignment="Stretch" TextAlignment="Right" ClipToBounds="True" VerticalAlignment="Center"
                                    Margin="0,0,12,0" FontWeight="Medium" FontSize="12"
                                    Foreground="{DynamicResource TitleTextBrush}"/>
 
                         <!-- Cột 2: Tỉ lệ % trực quan -->
-                        <Grid Grid.Column="2" Margin="4,0,12,0" VerticalAlignment="Center">
-                            <ProgressBar Minimum="0" Maximum="100" Value="{Binding Percent}" Height="14" CornerRadius="3"
+                        <Grid Grid.Column="2" Margin="4,0,12,0" VerticalAlignment="Center" ClipToBounds="True">
+                            <ProgressBar Minimum="0" Maximum="100" Value="{Binding Percent}" MinWidth="0" Width="119" Height="14" CornerRadius="3"
                                          Background="{DynamicResource SegmentBackgroundBrush}"
                                          Foreground="{DynamicResource AccentBrush}"/>
                             <TextBlock Text="{Binding PercentText}" FontSize="10" FontWeight="SemiBold"
@@ -174,16 +168,8 @@
                                        Foreground="{DynamicResource TitleTextBrush}"/>
                         </Grid>
 
-                        <!-- Cột 3: Số tệp -->
-                        <TextBlock Grid.Column="3" Text="{Binding FileCountText}" TextAlignment="Right" VerticalAlignment="Center"
-                                   Margin="0,0,10,0" Foreground="{DynamicResource StatusMutedTextBrush}" FontSize="11.5"/>
-
-                        <!-- Cột 4: Thư mục con -->
-                        <TextBlock Grid.Column="4" Text="{Binding FolderCountText}" TextAlignment="Right" VerticalAlignment="Center"
-                                   Margin="0,0,10,0" Foreground="{DynamicResource StatusMutedTextBrush}" FontSize="11.5"/>
-
-                        <!-- Cột 5: Ngày sửa đổi -->
-                        <TextBlock Grid.Column="5" Text="{Binding ModifiedText}" TextAlignment="Right" VerticalAlignment="Center"
+                        <!-- Cột 3: Ngày sửa đổi -->
+                        <TextBlock Grid.Column="3" Text="{Binding ModifiedText}" TextAlignment="Right" VerticalAlignment="Center"
                                    Margin="0,0,8,0" Foreground="{DynamicResource StatusMutedTextBrush}" FontSize="11.5"/>
                     </Grid>
                 </TreeDataTemplate>
@@ -198,6 +184,9 @@
                            Foreground="{DynamicResource StatusTextBrush}" VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis"/>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button x:Name="DeleteFolderButton" Content="Xóa thư mục" Height="24"
+                            Padding="10,0" FontSize="11" VerticalAlignment="Center"
+                            VerticalContentAlignment="Center" IsEnabled="False" Click="DeleteFolder_Click"/>
                     <Button x:Name="OpenInQuadPaneButton" Content="Mở trong QuadPane" Height="24"
                             Padding="10,0" FontSize="11" VerticalAlignment="Center"
                             VerticalContentAlignment="Center" IsEnabled="False" Click="OpenInQuadPane_Click"/>

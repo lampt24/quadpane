@@ -30,6 +30,18 @@ public sealed class TreeSizeItem : INotifyPropertyChanged
     public bool IsDrive { get; set; }
     public bool IsFolder { get; set; }
 
+    public bool CanDeleteFolder => IsFolder && !IsDrive && Path.IsPathFullyQualified(FullPath) &&
+        new DirectoryInfo(FullPath).Parent is not null;
+
+    internal bool RemoveDescendant(TreeSizeItem target)
+    {
+        if (!Children.Remove(target) && !Children.Any(child => child.RemoveDescendant(target))) return false;
+        Size = Math.Max(0, Size - target.Size);
+        FolderCount = Children.Count(child => child.IsFolder);
+        foreach (var child in Children) child.ParentSize = Size;
+        return true;
+    }
+
     public long Size
     {
         get => _size;
@@ -116,6 +128,30 @@ public sealed class TreeSizeItem : INotifyPropertyChanged
             Size = 1024 * 1024,
             ParentSize = 10 * 1024 * 1024,
         };
+        var rootPath = Path.GetPathRoot(Path.GetFullPath("."))!;
+        var folder = new TreeSizeItem { IsFolder = true, FullPath = Path.Combine(rootPath, "example"), Size = 40 };
+        var root = new TreeSizeItem { IsFolder = true, IsDrive = true, FullPath = rootPath, Size = 100 };
+        var sibling = new TreeSizeItem { Size = 60, ParentSize = 100 };
+        root.Children.Add(folder);
+        root.Children.Add(sibling);
+        if (root.CanDeleteFolder || !folder.CanDeleteFolder || new TreeSizeItem().CanDeleteFolder ||
+            new TreeSizeItem { IsFolder = true, FullPath = rootPath }.CanDeleteFolder ||
+            new TreeSizeItem { IsFolder = true, FullPath = Path.Combine(rootPath, "example", "..") }.CanDeleteFolder ||
+            new TreeSizeItem { FullPath = folder.FullPath }.CanDeleteFolder)
+            throw new InvalidOperationException("TreeSize deletion eligibility failed.");
+        if (!root.RemoveDescendant(folder) || root.Size != 60 || sibling.ParentSize != 60 ||
+            root.Children.Contains(folder) || root.RemoveDescendant(folder))
+            throw new InvalidOperationException("TreeSize deletion totals failed.");
+
+        var nested = new TreeSizeItem { IsFolder = true, Size = 20 };
+        var parent = new TreeSizeItem { IsFolder = true, Size = 30 };
+        parent.Children.Add(nested);
+        root.Children.Add(parent);
+        root.Size = 90;
+        if (!root.RemoveDescendant(nested) || parent.Size != 10 || root.Size != 70 ||
+            parent.ParentSize != 70 || sibling.ParentSize != 70)
+            throw new InvalidOperationException("TreeSize nested deletion totals failed.");
+
         if (item.SizeText != "1.0 MB" || item.PercentText != "10.0%")
             throw new InvalidOperationException($"TreeSizeItem calculations failed: SizeText={item.SizeText}, PercentText={item.PercentText}");
     }

@@ -29,6 +29,7 @@ public partial class TreeSizeWindow : Window
     private bool _sortAscending = false;
     private string _filterText = "";
     private bool _isPopulatingSelector;
+    private bool _isDeleting;
 
     public ObservableCollection<TreeSizeItem> RootItems => _rootItems;
 
@@ -447,10 +448,11 @@ public partial class TreeSizeWindow : Window
         bool hasSelection = TreeList.SelectedItem is TreeSizeItem;
         OpenInQuadPaneButton.IsEnabled = hasSelection;
         OpenInExplorerButton.IsEnabled = hasSelection;
+        DeleteFolderButton.IsEnabled = !_isDeleting && TreeList.SelectedItem is TreeSizeItem { CanDeleteFolder: true };
 
         if (TreeList.SelectedItem is TreeSizeItem item)
         {
-            UpdateStatus($"{item.FullPath} | Dung lượng: {item.SizeText} ({item.PercentText}) | {item.FolderCountText} {item.FileCountText} | Sửa đổi: {item.ModifiedText}");
+            UpdateStatus($"{item.FullPath} | Dung lượng: {item.SizeText} ({item.PercentText}) | Sửa đổi: {item.ModifiedText}");
         }
     }
 
@@ -482,6 +484,11 @@ public partial class TreeSizeWindow : Window
                 _ = cb.SetTextAsync(item.FullPath);
                 e.Handled = true;
             }
+        }
+        else if (e.Key == Key.Delete)
+        {
+            if (TreeList.SelectedItem is TreeSizeItem item) _ = DeleteFolderAsync(item);
+            e.Handled = true;
         }
         else if (e.Key == Key.F5)
         {
@@ -543,6 +550,11 @@ public partial class TreeSizeWindow : Window
 
         menu.Items.Add(new Separator());
 
+        var deleteFolder = new MenuItem { Header = "Xóa thư mục vào Thùng rác (Del)", IsEnabled = item.CanDeleteFolder && !_isDeleting };
+        deleteFolder.Click += async (_, _) => await DeleteFolderAsync(item);
+        menu.Items.Add(deleteFolder);
+        menu.Items.Add(new Separator());
+
         var windowsMenu = new MenuItem { Header = "Menu Windows..." };
         windowsMenu.Click += (_, _) =>
         {
@@ -559,6 +571,52 @@ public partial class TreeSizeWindow : Window
         menu.Items.Add(windowsMenu);
 
         menu.Open(TreeList);
+    }
+
+    private async void DeleteFolder_Click(object? sender, RoutedEventArgs e)
+    {
+        if (TreeList.SelectedItem is TreeSizeItem item) await DeleteFolderAsync(item);
+    }
+
+    private async Task DeleteFolderAsync(TreeSizeItem item)
+    {
+        if (_isDeleting || !item.CanDeleteFolder || !OperatingSystem.IsWindows()) return;
+        if (!UpdateService.Confirm(this,
+            $"Chuyển thư mục và toàn bộ nội dung vào Thùng rác?\n\n{item.FullPath}", "Xóa thư mục")) return;
+
+        _isDeleting = true;
+        DeleteFolderButton.IsEnabled = false;
+        UpdateStatus($"Đang xóa: {item.FullPath}");
+        try
+        {
+            await Task.Run(() => Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(item.FullPath,
+                Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
+                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin,
+                Microsoft.VisualBasic.FileIO.UICancelOption.ThrowException));
+            if (!_rootItems.Remove(item))
+                foreach (var root in _rootItems)
+                    if (root.RemoveDescendant(item))
+                    {
+                        if (!root.IsDrive) root.ParentSize = root.Size;
+                        break;
+                    }
+            TreeList.SelectedItem = null;
+            UpdateStatus($"Đã chuyển vào Thùng rác: {item.FullPath}");
+        }
+        catch (OperationCanceledException)
+        {
+            UpdateStatus("Đã hủy xóa thư mục. Nhấn F5 để cập nhật dung lượng.");
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus($"Không thể xóa: {item.FullPath}. Nhấn F5 để cập nhật dung lượng.");
+            UpdateService.ShowError(this, ex.Message, "Không thể xóa thư mục");
+        }
+        finally
+        {
+            _isDeleting = false;
+            DeleteFolderButton.IsEnabled = TreeList.SelectedItem is TreeSizeItem { CanDeleteFolder: true };
+        }
     }
 
     private async Task ReloadItemAsync(TreeSizeItem item)
