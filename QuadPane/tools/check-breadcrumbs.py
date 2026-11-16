@@ -9,7 +9,7 @@ controls = {node.get(name): node for node in view.iter() if node.get(name)}
 bar = controls['BreadcrumbBar']
 assert controls['Breadcrumbs'] in list(bar.iter())
 scroller = next(node for node in bar.iter() if node.tag.endswith('}ScrollViewer'))
-assert scroller.get('HorizontalScrollBarVisibility') == 'Auto', 'Deep paths must remain reachable'
+assert scroller.get('HorizontalScrollBarVisibility') == 'Hidden', 'Scrollbar must never cover path links'
 edit = next(node for node in bar.iter() if node.get('Click') == 'EditAddress_Click')
 assert edit.get('AutomationProperties.Name'), 'Editing must have an accessible name'
 assert edit not in list(scroller.iter()), 'Editing must remain reachable on long paths'
@@ -20,4 +20,9 @@ code = (root / 'PaneView.axaml.cs').read_text()
 assert 'AutomationProperties.SetName(button, target)' in code
 assert 'if (Host.Navigate(target)) FocusView();' in code
 assert 'folder = folder.Parent' in code, 'Use filesystem parents to preserve drive and UNC roots'
+
+assert scroller.get('ScrollChanged') == 'BreadcrumbScroller_ScrollChanged'
+assert controls['BreadcrumbOverflow'].get('Click') == 'BreadcrumbOverflow_Click'
+assert controls['BreadcrumbOverflow'] not in list(scroller.iter())
+assert 'new Vector(BreadcrumbScroller.Extent.Width, 0)' in code, 'Keep the current folder visible horizontally'
 print('Breadcrumb UI wiring checks passed')

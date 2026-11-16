@@ -943,17 +943,19 @@ public partial class PaneView : UserControl
 
         foreach (var folder in folders)
         {
-            if (Breadcrumbs.Children.Count > 0 && !Path.EndsInDirectorySeparator(folder.Parent!.FullName))
-                Breadcrumbs.Children.Add(new TextBlock { Text = "\\", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
+            if (Breadcrumbs.Children.Count > 0)
+                Breadcrumbs.Children.Add(new TextBlock
+                {
+                    Text = "\u203A", Margin = new Thickness(2, 0),
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                });
             var target = folder.FullName;
             var button = new Button
             {
                 Content = folder.Parent is null ? target : folder.Name,
-                Padding = new Thickness(4, 3),
-                Background = Avalonia.Media.Brushes.Transparent,
-                BorderThickness = new Thickness(0),
-                Cursor = new Cursor(StandardCursorType.Hand)
+                Tag = target
             };
+            button.Classes.Add("breadcrumb");
             ToolTip.SetTip(button, target);
             Avalonia.Automation.AutomationProperties.SetName(button, target);
             button.Click += (_, _) =>
@@ -966,6 +968,36 @@ public partial class PaneView : UserControl
         }
         AddressBox.IsVisible = false;
         BreadcrumbBar.IsVisible = true;
+        Dispatcher.UIThread.Post(() => BreadcrumbScroller.Offset = new Vector(BreadcrumbScroller.Extent.Width, 0), DispatcherPriority.Loaded);
+    }
+
+    private void BreadcrumbScroller_ScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        // Compare against the full available width so the overflow button cannot keep itself visible.
+        var available = BreadcrumbScroller.Viewport.Width +
+            (BreadcrumbOverflow.IsVisible ? BreadcrumbOverflow.Bounds.Width : 0);
+        BreadcrumbOverflow.IsVisible = BreadcrumbScroller.Extent.Width > available + 1;
+        if (e.ExtentDelta.X != 0 || e.ViewportDelta.X != 0)
+            BreadcrumbScroller.Offset = new Vector(BreadcrumbScroller.Extent.Width, 0);
+    }
+
+    private void BreadcrumbOverflow_Click(object? sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu();
+        foreach (var button in Breadcrumbs.Children.OfType<Button>())
+        {
+            var item = new MenuItem { Header = button.Tag as string };
+            item.Click += (_, _) =>
+            {
+                var target = (string)button.Tag!;
+                Activated?.Invoke(this);
+                if (Host.Navigate(target)) FocusView();
+                else ShowActionError($"Không thể mở thư mục: {target}");
+            };
+            menu.Items.Add(item);
+        }
+        BreadcrumbOverflow.ContextMenu = menu;
+        menu.Open(BreadcrumbOverflow);
     }
 
     private void EditAddress_Click(object? sender, RoutedEventArgs e) => FocusAddress();

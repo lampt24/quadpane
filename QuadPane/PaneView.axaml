@@ -2,6 +2,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="QuadPane.PaneView"
              ClipToBounds="False">
+    <UserControl.Styles>
+        <Style Selector="StackPanel#Breadcrumbs > TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="Button.breadcrumb">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="MinHeight" Value="26"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.breadcrumb:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource TabHoverBrush}"/>
+        </Style>
+    </UserControl.Styles>
 
     <Border x:Name="Card" Classes="pane">
         <DockPanel>
@@ -93,15 +110,19 @@
                                 Background="{DynamicResource AddressBackgroundBrush}"
                                 BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1">
                             <DockPanel>
+                                <Button x:Name="BreadcrumbOverflow" DockPanel.Dock="Left" Classes="breadcrumb"
+                                        Content="&#xAB;" IsVisible="False" Click="BreadcrumbOverflow_Click"
+                                        AutomationProperties.Name="Thư mục cha" ToolTip.Tip="Thư mục cha"/>
                                 <Button DockPanel.Dock="Right" Content="&#xE70F;" Classes="icon"
                                         AutomationProperties.Name="Sửa đường dẫn" ToolTip.Tip="Sửa đường dẫn"
                                         Click="EditAddress_Click"/>
-                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                <ScrollViewer x:Name="BreadcrumbScroller" HorizontalScrollBarVisibility="Hidden"
+                                              VerticalScrollBarVisibility="Disabled" ScrollChanged="BreadcrumbScroller_ScrollChanged">
                                     <StackPanel x:Name="Breadcrumbs" Orientation="Horizontal" Margin="4,0"/>
                                 </ScrollViewer>
                             </DockPanel>
                         </Border>
-                        <TextBox x:Name="AddressBox" Classes="address" IsVisible="False"
+                        <TextBox x:Name="AddressBox" Classes="address" IsVisible="False" FontSize="12"
                                  AutomationProperties.Name="Đường dẫn thư mục"
                                  PlaceholderText="Nhập đường dẫn rồi nhấn Enter"
                                  KeyDown="AddressBox_KeyDown" GotFocus="AddressBox_GotFocus" LostFocus="AddressBox_LostFocus"/>
