@@ -27,8 +27,6 @@
                     <TextBlock Text="PANE" FontWeight="Bold" FontSize="12" LetterSpacing="1"
                                Foreground="{DynamicResource AccentBrush}"/>
                 </StackPanel>
-                <TextBlock x:Name="VersionLabel" FontSize="10" VerticalAlignment="Center" Margin="0,2,0,0"
-                           Foreground="{DynamicResource StatusMutedTextBrush}"/>
             </StackPanel>
 
             <TextBox x:Name="SearchBox" Classes="titleSearch" Grid.Column="1" Width="230" Margin="8,0,10,0"
@@ -83,7 +81,9 @@
         <!-- ===== Thanh trạng thái ===== -->
         <Border Grid.Row="2" MinHeight="30" Background="{DynamicResource StatusSurfaceBrush}"
                 BorderBrush="{DynamicResource TitleBorderBrush}" BorderThickness="0,1,0,0">
-            <Grid Margin="4,0,10,0" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="8">
+            <Grid Margin="4,0,10,0" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
+                <TextBlock x:Name="VersionLabel" Grid.Column="6" FontSize="10" VerticalAlignment="Center"
+                           Foreground="{DynamicResource StatusMutedTextBrush}" ToolTip.Tip="Phiên bản QuadPane"/>
                 <Button Grid.Column="0" Classes="icon" Content="&#xE713;" Height="26" Width="26" Focusable="True"
                         ToolTip.Tip="Cài đặt (Ctrl+,)" AutomationProperties.Name="Cài đặt" Click="Settings_Click"/>
                 <TextBlock x:Name="StatusText" Grid.Column="1" FontSize="11.5" FontWeight="Medium"
