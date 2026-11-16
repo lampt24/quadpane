@@ -253,6 +253,7 @@ public partial class PaneView : UserControl
                 SyncFilterBox();
                 AddressBox.Text = display;
                 AddressBox.Classes.Remove("error");
+                UpdateBreadcrumbs();
                 UpdateHomeButtons();
                 PathChanged?.Invoke(this);
             }
@@ -351,6 +352,7 @@ public partial class PaneView : UserControl
         UpdateHomeButtons();
         AddressBox.Text = CurrentTab.Display ?? "";
         AddressBox.Classes.Remove("error");
+        UpdateBreadcrumbs();
         Activated?.Invoke(this);
         PathChanged?.Invoke(this);
         if (focus) Dispatcher.UIThread.Post(() => { if (CurrentTab == selected) FocusView(); }, DispatcherPriority.Background);
@@ -474,8 +476,24 @@ public partial class PaneView : UserControl
     public void FocusFilter()
     {
         if (CurrentTab.Search is not null) return;
+        FilterBox.IsVisible = true;
         FilterBox.Focus();
         FilterBox.SelectAll();
+    }
+
+    private void FilterButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (FilterBox.IsVisible) HideFilter();
+        else FocusFilter();
+    }
+
+    private void HideFilter()
+    {
+        FilterBox.Text = "";
+        _filterTimer.Stop();
+        ApplyFilterText();
+        FilterBox.IsVisible = false;
+        FocusView();
     }
 
     private void SyncFilterBox()
@@ -483,6 +501,7 @@ public partial class PaneView : UserControl
         _syncingFilter = true;
         _filterTimer.Stop();
         FilterBox.Text = CurrentTab.Search is null ? Host.FilterText : "";
+        FilterBox.IsVisible = !string.IsNullOrEmpty(FilterBox.Text);
         FilterBox.Classes.Set("active", !string.IsNullOrEmpty(FilterBox.Text));
         _syncingFilter = false;
     }
@@ -509,10 +528,7 @@ public partial class PaneView : UserControl
     {
         if (e.Key == Key.Escape)
         {
-            FilterBox.Text = "";
-            _filterTimer.Stop();
-            ApplyFilterText();
-            FocusView();
+            HideFilter();
             e.Handled = true;
         }
         else if (e.Key is Key.Enter or Key.Down)
@@ -772,6 +788,8 @@ public partial class PaneView : UserControl
     public void FocusAddress()
     {
         if (CurrentTab.Search is not null) OpenTab();
+        BreadcrumbBar.IsVisible = false;
+        AddressBox.IsVisible = true;
         AddressBox.Focus();
         AddressBox.SelectAll();
     }
@@ -899,6 +917,66 @@ public partial class PaneView : UserControl
         _showPreview = PreviewToggle.IsChecked == true;
         foreach (var tab in _tabs) tab.Host.ShowPreview = _showPreview;
     }
+    private void UpdateBreadcrumbs()
+    {
+        Breadcrumbs.Children.Clear();
+        var path = CurrentPath;
+        if (!IsFileSystemFolder(path))
+        {
+            BreadcrumbBar.IsVisible = false;
+            AddressBox.IsVisible = true;
+            return;
+        }
+
+        var folders = new Stack<DirectoryInfo>();
+        try
+        {
+            for (var folder = new DirectoryInfo(path!); folder is not null; folder = folder.Parent)
+                folders.Push(folder);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            BreadcrumbBar.IsVisible = false;
+            AddressBox.IsVisible = true;
+            return;
+        }
+
+        foreach (var folder in folders)
+        {
+            if (Breadcrumbs.Children.Count > 0 && !Path.EndsInDirectorySeparator(folder.Parent!.FullName))
+                Breadcrumbs.Children.Add(new TextBlock { Text = "\\", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
+            var target = folder.FullName;
+            var button = new Button
+            {
+                Content = folder.Parent is null ? target : folder.Name,
+                Padding = new Thickness(4, 3),
+                Background = Avalonia.Media.Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+            ToolTip.SetTip(button, target);
+            Avalonia.Automation.AutomationProperties.SetName(button, target);
+            button.Click += (_, _) =>
+            {
+                Activated?.Invoke(this);
+                if (Host.Navigate(target)) FocusView();
+                else ShowActionError($"Không thể mở thư mục: {target}");
+            };
+            Breadcrumbs.Children.Add(button);
+        }
+        AddressBox.IsVisible = false;
+        BreadcrumbBar.IsVisible = true;
+    }
+
+    private void EditAddress_Click(object? sender, RoutedEventArgs e) => FocusAddress();
+
+    private void AddressBox_LostFocus(object? sender, RoutedEventArgs e)
+    {
+        AddressBox.Text = CurrentTab.Display ?? "";
+        AddressBox.Classes.Remove("error");
+        UpdateBreadcrumbs();
+    }
+
     private void AddressBox_GotFocus(object? sender, FocusChangedEventArgs e)
     {
         Activated?.Invoke(this);
@@ -914,6 +992,9 @@ public partial class PaneView : UserControl
         }
         else if (e.Key == Key.Escape)
         {
+            AddressBox.Text = CurrentTab.Display ?? "";
+            AddressBox.Classes.Remove("error");
+            UpdateBreadcrumbs();
             FocusView();
             e.Handled = true;
         }
