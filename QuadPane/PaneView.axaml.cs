@@ -944,10 +944,9 @@ public partial class PaneView : UserControl
         foreach (var folder in folders)
         {
             if (Breadcrumbs.Children.Count > 0)
-                Breadcrumbs.Children.Add(new TextBlock
+                Breadcrumbs.Children.Add(new Avalonia.Controls.Shapes.Path
                 {
-                    Text = "\u203A", Margin = new Thickness(2, 0),
-                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    Data = Avalonia.Media.Geometry.Parse("M0 0 L3 3 L0 6")
                 });
             var target = folder.FullName;
             var button = new Button
